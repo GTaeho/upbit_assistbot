@@ -1,24 +1,16 @@
 {
   "name": "upbit_assistbot",
   "version": "1.0.0",
-  "description": "upbit assist bot",
+  "description": "upbit assistbot",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/GTaeho/upbit_assistbot.git"
-  },
   "keywords": [
     "upbit",
-    "assist",
-    "bot"
+    "assistbot",
+    "telegram"
   ],
   "author": "GTaeho",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/GTaeho/upbit_assistbot/issues"
-  },
-  "homepage": "https://github.com/GTaeho/upbit_assistbot#readme"
+  "license": "ISC"
 }
