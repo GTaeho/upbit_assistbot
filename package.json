@@ -1,6 +1,7 @@
 {
   "name": "upbit_assistbot",
   "version": "1.0.0",
+  "type": "module",
   "description": "upbit assistbot",
   "main": "server.js",
   "scripts": {
@@ -12,5 +13,13 @@
     "telegram"
   ],
   "author": "GTaeho",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "chart.js": "^3.7.1",
+    "chartjs-node-canvas": "^4.1.6",
+    "dotenv": "^16.0.0",
+    "node-fetch": "^3.2.3",
+    "node-telegram-bot-api": "^0.56.0",
+    "sqlite3": "^4.2.0"
+  }
 }
