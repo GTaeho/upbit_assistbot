@@ -16,14 +16,23 @@ export const krwbtc_sample_data = async () => {
    * 페이지네이션 기술을 이용해 순차적으로 요청하는 것을 권장합니다.
    */
   const res = await fetch(
-    "https://api.upbit.com/v1/candles/minutes/5?market=KRW-BTC&count=20"
+    "https://api.upbit.com/v1/candles/minutes/5?market=KRW-BTC&count=30"
   );
   const data = await res.json();
 
-  const closeArrary = [];
-  for (let key in data) {
-    closeArrary.push(data[key]["trade_price"]);
-  }
+  // const closeArrary = [];
+  // for (let key in data) {
+  //   closeArrary.push(data[key]["trade_price"]);
+  // }
+  // return closeArrary;
 
-  return closeArrary;
+  const sampleDataArray = [];
+  for (let key in data) {
+    sampleDataArray.push({
+      x: data[key]["candle_date_time_kst"],
+      y: data[key]["trade_price"],
+    });
+  }
+  // console.log(sampleDataArray);
+  return sampleDataArray.reverse();
 };

@@ -1,13 +1,16 @@
+/*
+
+ _______ _______ _______ _     _  _____  _______  _____  _______ _______
+    |    |_____| |______ |_____| |     | |______ |     | |______    |   
+    |    |     | |______ |     | |_____| ______| |_____| |          | 
+
+  ** 2022 - 태호소프트 제작
+  ** Github repository : https://github.com/GTaeho/upbit_assistbot
+*/
+
 import sqlite3 from "sqlite3";
 
-/**
- * users db 테이블 설명
- * id : 자동생성 인덱스
- * username : 텔레그램 사용자 id
- * userfullname : 성 + 이름 합친 이름
- * chatid : 채팅 id (메세지 보낼때 사용)
- * lastcmd : 마지막 명령어를 보낸 date. Thu Mar 17 2022 14:49:46 GMT+0900 (대한민국 표준시) 이렇게 들어옴
- */
+// db 생성
 const db = new sqlite3.Database("./db/users.db");
 
 // db 개수 빨리 세서 리턴
@@ -17,6 +20,7 @@ export const fastIDCount = () => {
     db.get(fastCountQuery, (err, row) => {
       if (err) reject(err);
       const result = row["COUNT(id)"];
+      console.log("")
       resolve(result);
     });
   });

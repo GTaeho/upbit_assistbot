@@ -8,53 +8,33 @@
   ** Github repository : https://github.com/GTaeho/upbit_assistbot
 */
 
-import { renderSmallChart } from "./memorymgnt.js";
+import { rendrerChartSet640360 } from "./memorymgnt.js";
 import { krwbtc_sample_data } from "./upbit.js";
 
 export const sample_chart = async () => {
   const upbitData = await krwbtc_sample_data();
   const config = {
-    type: 'line',
-    data: data,
+    type: "line",
+    data: {
+      // labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
+      datasets: [
+        {
+          label: "KRW-BTC",
+          data: upbitData,
+          // borderWidth: 1,
+          borderColor: 'rgb(75, 192, 192)'
+        },
+      ],
+    },
     options: {
-      responsive: true,
-      plugins: {
-        tooltip: {
-          mode: 'index',
-          intersect: false
-        },
-        title: {
-          display: true,
-          text: 'Chart.js Line Chart'
-        }
-      },
-      hover: {
-        mode: 'index',
-        intersec: false
-      },
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: 'Month'
-          }
-        },
-        y: {
-          title: {
-            display: true,
-            text: 'Value'
-          },
-          min: 0,
-          max: 100,
-          ticks: {
-            // forces step size to be 50 units
-            stepSize: 50
-          }
-        }
-      }
+      // scales: {
+      //   y: {
+      //     beginAtZero: true,
+      //   },
+      // },
     },
   };
 
   // 메모리 관리를 위해서 같은 객체를 재사용, 렌더 메서드만 사용
-  return await renderSmallChart(config);
+  return await rendrerChartSet640360(config);
 };

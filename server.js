@@ -49,7 +49,15 @@ bot.onText(/\/start/, async (msg) => {
       : userLastName + " " + userFirstName;
   const userName = msg.chat.username;
   const messageText = msg.text || "no text";
-  const lastDateOfCommand = new Date(msg.date * 1000);
+  // const lastDateOfCommand = new Date(msg.date * 1000);
+
+  /**
+   * new Date(msg.date * 1000) = 현재 날짜 시간 출력. new Date() 붙이려면 1000을 꼭 곱해야 한다.
+   * msg.data * 1000 일때 1000이 1초. 계산에 1000이 꼭 필요한건 아니니 1000은 제거.
+   * 그러면 msg.data 자체 일때는 1초가 1. 이 때 하루는 86400초. 일주일은 604800이다.
+   * db에서 lastcmd가 604800 이상 차이나면 일주일간 접속 기록이 없는것이다.
+   */
+  const lastCommand = msg.date;
 
   // 정원이 다 찼을 때
   if (usercount >= max_user_quota) {

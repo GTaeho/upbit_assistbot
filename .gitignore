@@ -1,6 +1,8 @@
 # folder
 node_modules
+doc
 db
 
 # files
 .env
+testanything.js
