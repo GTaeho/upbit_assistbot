@@ -38,13 +38,6 @@ export const krwbtc_sample_data = async () => {
     "https://api.upbit.com/v1/candles/minutes/5?market=KRW-BTC&count=30"
   );
   const data = await res.json();
-
-  // const closeArrary = [];
-  // for (let key in data) {
-  //   closeArrary.push(data[key]["trade_price"]);
-  // }
-  // return closeArrary;
-
   const sampleDataArray = [];
   for (let key in data) {
     sampleDataArray.push({
@@ -54,4 +47,10 @@ export const krwbtc_sample_data = async () => {
   }
   // console.log(sampleDataArray);
   return sampleDataArray.reverse();
+};
+
+// 업비트에서 거래 가능한 마켓 목록
+export const fetchAllMarket = async () => {
+  const res = await fetch("https://api.upbit.com/v1/market/all");
+  return await res.json();
 };

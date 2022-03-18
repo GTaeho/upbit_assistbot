@@ -9,7 +9,8 @@
 */
 
 import ta from "technicalindicators";
-import { krwbtc_raw_sample_data } from "./upbit.js";
+import { lookupCCByTF } from "./dbop.js";
+import { raw_sample_data } from "./upbit.js";
 
 export const startAlarm = () => {
   let prev_minute = 99;
@@ -35,33 +36,55 @@ export const startAlarm = () => {
       console.log(result[result.length - 5]);
       console.log(result[result.length - 4]);
       console.log(result[result.length - 3]);
-      console.log(result[result.length - 2]);
-      console.log(result[result.length - 1]);
+      console.log(result[result.length - 2]); // 방금 종료된 이전 봉
+      console.log(result[result.length - 1]); // 지금 막 시작된 움직이는 봉
       console.log("-------------------------");
+
+      // chatid, coin, timeframe 받아와서 정리하기
+      // [ { chatid: 447679971, coin: 'KRW-BTC', timeframe: '5' } ] 이런 형식
+      const rows = await lookupCCByTF("1");
+      if (rows !== undefined) {
+        console.log("매 분 마크 : ", rows);
+      }
 
       // 매 3분마다 실행
       if (minute_now % 3 === 0) {
-        console.log("매 3분 마크 : " + minute_now);
+        const rows = await lookupCCByTF("3");
+        if (rows !== undefined) {
+          console.log("매 3분 마크 : ", rows);
+        }
       }
 
       // 매 5분마다 실행
       if (minute_now % 5 === 0) {
-        console.log("매 5분 마크 : " + minute_now);
+        const rows = await lookupCCByTF("5");
+        if (rows !== undefined) {
+          console.log("매 5분 마크 : ", rows);
+        }
       }
 
       // 매 10분마다 실행
       if (minute_now % 10 === 0) {
-        console.log("매 10분 마크 : " + minute_now);
+        const rows = await lookupCCByTF("10");
+        if (rows !== undefined) {
+          console.log("매 10분 마크 : ", rows);
+        }
       }
 
       // 매 30분마다 실행
       if (minute_now % 30 === 0) {
-        console.log("매 30분 마크 : " + minute_now);
+        const rows = await lookupCCByTF("30");
+        if (rows !== undefined) {
+          console.log("매 30분 마크 : ", rows);
+        }
       }
 
       // 매 60분마다 실행
       if (minute_now % 60 === 0) {
-        console.log("매 60분 마크 : " + minute_now);
+        const rows = await lookupCCByTF("60");
+        if (rows !== undefined) {
+          console.log("매 60분 마크 : ", rows);
+        }
       }
     }
   }, 7000);

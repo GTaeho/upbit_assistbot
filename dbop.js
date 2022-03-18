@@ -10,7 +10,7 @@
 
 import sqlite3 from "sqlite3";
 
-// db 생성
+// db 생성 - 신기하다. 여기서만 생성하면 db.xxx 이름으로 시작되는 모든 작업이 사용가능
 const db = new sqlite3.Database("./db/users.db");
 
 // db 개수 빨리 세서 리턴
@@ -20,7 +20,7 @@ export const fastIDCount = () => {
     db.get(fastCountQuery, (err, row) => {
       if (err) reject(err);
       const result = row["COUNT(id)"];
-      console.log("")
+      console.log("");
       resolve(result);
     });
   });
@@ -47,6 +47,29 @@ export const findByID = (username) => {
           resolve(result);
         }
       }
+    });
+  });
+};
+
+// // db의 chatid, coin, timeframe 컬럼 조회
+// // CMT = 'C'hatid, 'C'oin, 'T'imeframe
+// export const lookupCCT = () => {
+//   return new Promise((resolve, reject) => {
+//     const query = `SELECT chatid, coin, timeframe FROM users`;
+//     db.all(query, [], (err, rows) => {
+//       if (err) reject(err);
+//       resolve(rows);
+//     });
+//   });
+// };
+
+// 개별 db cct 를 timeframe에 따라 조회
+export const lookupCCByTF = (timeframe) => {
+  return new Promise((resolve, reject) => {
+    const query = `SELECT chatid, coin FROM users WHERE timeframe = ${timeframe}`;
+    db.all(query, [], (err, rows) => {
+      if (err) reject(err);
+      resolve(rows);
     });
   });
 };
