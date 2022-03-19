@@ -49,6 +49,37 @@ export const krwbtc_sample_data = async () => {
   return sampleDataArray.reverse();
 };
 
+export const fetchUpbitCoinData = async (marketSymbol, timeframe) => {
+  /**
+   * 주의할 점은, 한 번에 200개 까지의 캔들을 요청할 수 있으며 이를 초과하는 경우
+   * 페이지네이션 기술을 이용해 순차적으로 요청하는 것을 권장합니다.
+   */
+  const url = `https://api.upbit.com/v1/candles/minutes/${timeframe}?market=${marketSymbol}&count=1`;
+  const res = await fetch(url);
+  console.log(url);
+  const data = await res.json();
+  const sampleDataArray = [];
+  for (let key in data) {
+    sampleDataArray.push({
+      x: data[key]["candle_date_time_kst"],
+      y: data[key]["trade_price"],
+    });
+  }
+  // console.log(sampleDataArray);
+  return sampleDataArray.reverse();
+};
+
+export const fetchRawUpbitCoinData = async (marketSymbol, timeframe) => {
+  /**
+   * 주의할 점은, 한 번에 200개 까지의 캔들을 요청할 수 있으며 이를 초과하는 경우
+   * 페이지네이션 기술을 이용해 순차적으로 요청하는 것을 권장합니다.
+   */
+  const url = `https://api.upbit.com/v1/candles/minutes/${timeframe}?market=${marketSymbol}&count=200`;
+  const res = await fetch(url);
+  const data = await res.json();
+  return data.reverse();
+};
+
 // 업비트에서 거래 가능한 마켓 목록
 export const fetchAllMarket = async () => {
   const res = await fetch("https://api.upbit.com/v1/market/all");

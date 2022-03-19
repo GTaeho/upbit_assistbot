@@ -17,7 +17,7 @@ See https://github.com/yagop/node-telegram-bot-api/issues/319. node:internal\mod
 
 import dotenv from "dotenv";
 import { findByID, fastIDCount, insertUser } from "./dbop.js";
-import { sample_chart } from "./renderchart.js";
+import { renderMACDCO } from "./renderchart.js";
 import TelegramBot from "node-telegram-bot-api";
 
 // .env 사용하기
@@ -49,7 +49,7 @@ bot.onText(/\/start/, async (msg) => {
       : userLastName + " " + userFirstName;
   const userName = msg.chat.username;
   const messageText = msg.text || "no text";
-  // const lastDateOfCommand = new Date(msg.date * 1000);
+  const lastDateOfCommand = msg.date;
 
   /**
    * new Date(msg.date * 1000) = 현재 날짜 시간 출력. new Date() 붙이려면 1000을 꼭 곱해야 한다.
@@ -80,6 +80,9 @@ bot.onText(/\/start/, async (msg) => {
         messageText,
         lastDateOfCommand
       );
+      if (result == "ok") {
+        console.log(userName, "become a member");
+      }
     }
 
     // 신규가입이든 기존회원이든 환영메세지는 출력
@@ -138,4 +141,35 @@ bot.onText(/\/image/, async (msg) => {
 //   const messageId = msg.message_id;
 //   const messageText = msg.text || "no text";
 // });
- 
+
+export const sendPhoto = async (chatid, ta) => {
+  const buffer = undefined;
+  switch (ta) {
+    case "macdco":
+      buffer = await renderMACDCO();
+      break;
+    case "macdcu":
+      break;
+    case "macdcozero":
+      break;
+    case "macdcuzero":
+      break;
+    case "rsicu":
+      break;
+    case "rsieos":
+      break;
+    case "rsibrov50":
+      break;
+    case "rsibrdn50":
+      break;
+    case "rsiobco":
+      break;
+    case "rsiobcu":
+      break;
+    default:
+      break;
+  }
+  if (buffer != undefined) {
+    bot.sendPhoto(chatid, buffer, {});
+  }
+};

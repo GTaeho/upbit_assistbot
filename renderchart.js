@@ -22,7 +22,34 @@ export const sample_chart = async () => {
           label: "KRW-BTC",
           data: upbitData,
           // borderWidth: 1,
-          borderColor: 'rgb(75, 192, 192)'
+          borderColor: "rgb(75, 192, 192)",
+        },
+      ],
+    },
+    options: {
+      // scales: {
+      //   y: {
+      //     beginAtZero: true,
+      //   },
+      // },
+    },
+  };
+
+  // 메모리 관리를 위해서 같은 객체를 재사용, 렌더 메서드만 사용
+  return await rendrerChartSet640360(config);
+};
+
+export const renderMACDCO = async (coindata) => {
+  const config = {
+    type: "line",
+    data: {
+      // labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
+      datasets: [
+        {
+          label: "KRW-BTC",
+          data: coindata,
+          // borderWidth: 1,
+          borderColor: "rgb(75, 192, 192)",
         },
       ],
     },
