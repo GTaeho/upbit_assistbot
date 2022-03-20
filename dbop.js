@@ -166,7 +166,7 @@ export const insertCoinData = (market, data, timeframe) => {
       }
       /** 노드에서 for 문 break에 대해서...
        * 여기서 생각을 한것이... 어떤짓을 해도 for문 밖에 console를 넣던지 해도
-       * statement.finalize()를 마무리 하지 않고 for문 밖에 실행만하고 이 함수 자체를 
+       * statement.finalize()를 마무리 하지 않고 for문 밖에 실행만하고 이 함수 자체를
        * 끝내버린다. 이것때문에 골머리를 얼마나 썩었는지 많이 늙은것 같다.
        * 아무리 검색을 해도 promise 로 감싸서 await를 해라 정도가 끝인데
        * 아무리 이 함수를 await로 감싸도 이 함수 밖에서는 또 for문이 돌아가고 있는데
@@ -187,7 +187,7 @@ export const insertCoinData = (market, data, timeframe) => {
       statement.finalize(() => {
         // statement.finalize() 까지 완성되는것이 꼭, 반드시 중요하다.
         console.log(
-          "dbop.js > insertCoinData() -> INSERT op. successfully done!"
+          "DB에 데이터 자료 입력 완료"
         );
         // close는 꼭 serialize() 다 끝난 뒤에. 안에 넣으면 error
         // db는 닫지 말자. 한 번 닫으면 또 쓸때 또 열어야 한다.
@@ -200,6 +200,7 @@ export const insertCoinData = (market, data, timeframe) => {
 
 // 'market' 컬럼에서 종가(close-업비트에서는 trade_price) 읽어오기
 export const readExistingCoinData = (market, timeframe) => {
+  console.log('DB에서 자료 읽어오기 시작')
   return new Promise((resolve, reject) => {
     const query = `SELECT trade_price FROM '${market}'`;
     // timeframe에 맞는 db가져오기
@@ -225,6 +226,22 @@ export const checkTableExists = (market, timeframe) => {
       if (rows.length == 0) resolve(false);
       else resolve(true);
     });
+  });
+};
+
+// 사용이 끝난 db는 테이블 삭제
+export const dropTableIfExists = (coinTablePlaceholder, timeframe) => {
+  return new Promise((resolve, reject) => {
+    // timeframe에 맞는 db가져오기
+    const db = getDBByTimeframe(timeframe);
+    for (let i = 0, phlen = coinTablePlaceholder.length; i < phlen; i++) {
+      const tablename = coinTablePlaceholder[i];
+      const query = `DROP TABLE IF EXISTS '${tablename}'`;
+      db.run(query, (err) => {
+        if (err) reject(err)
+        resolve("ok")
+      })
+    }
   });
 };
 
