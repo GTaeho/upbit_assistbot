@@ -17,7 +17,7 @@ See https://github.com/yagop/node-telegram-bot-api/issues/319. node:internal\mod
 
 import dotenv from "dotenv";
 import { findByID, fastIDCount, insertUser } from "./dbop.js";
-import { renderMACDCO } from "./renderchart.js";
+import { renderChart } from "./renderchart.js";
 import TelegramBot from "node-telegram-bot-api";
 
 // .env 사용하기
@@ -146,7 +146,7 @@ export const sendPhoto = async (chatid, ta) => {
   const buffer = undefined;
   switch (ta) {
     case "macdco":
-      buffer = await renderMACDCO();
+      buffer = await renderChart();
       break;
     case "macdcu":
       break;

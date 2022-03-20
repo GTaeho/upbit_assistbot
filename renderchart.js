@@ -39,7 +39,7 @@ export const sample_chart = async () => {
   return await rendrerChartSet640360(config);
 };
 
-export const renderMACDCO = async (coindata) => {
+export const renderChart = async (coindata) => {
   const config = {
     type: "line",
     data: {
@@ -62,6 +62,6 @@ export const renderMACDCO = async (coindata) => {
     },
   };
 
-  // 메모리 관리를 위해서 같은 객체를 재사용, 렌더 메서드만 사용
+  // 메모리 관리를 위해서 같은 객체를 재사용, 렌더 메서드만 사용. new 는 처음에 딱 한번만.
   return await rendrerChartSet640360(config);
 };

@@ -38,29 +38,26 @@ const bigCChartJSNodeCanvas = new ChartJSNodeCanvas({
   backgroundColour: "white",
 });
 
+// // Expose just the 'render' methods to downstream code
+// // so they don't have to worry about life-cycle management.
 // 정서적으로 눈으로 보기에 줄일 수 있는 가장 최소크기
 export const renderSmallChart = async (configuration) => {
   // .renderToBuffer 가 Promise를 반환한다. await 쓰기.
   return await smallChartJSNodeCanvas.renderToBuffer(configuration);
 };
 
+// // Expose just the 'render' methods to downstream code
+// // so they don't have to worry about life-cycle management.
 // 640*360 세트 실험
 export const rendrerChartSet640360 = async (configuration) => {
   // .renderToBuffer 가 Promise를 반환한다. await 쓰기.
   return await chartSet640360.renderToBuffer(configuration);
 };
 
+// // Expose just the 'render' methods to downstream code
+// // so they don't have to worry about life-cycle management.
 // 960*540 세트 실험
 export const rendrerChartSet960540 = async (configuration) => {
   // .renderToBuffer 가 Promise를 반환한다. await 쓰기.
   return await chartSet960540.renderToBuffer(configuration);
 };
-
-// // Expose just the 'render' methods to downstream code
-// // so they don't have to worry about life-cycle management.
-// module.exports = {
-//   renderSmallChart: (configuration) =>
-//     smallChartJSNodeCanvas.renderToBuffer(configuration),
-//   renderBigChart: (configuration) =>
-//     bigCChartJSNodeCanvas.renderToBuffer(configuration),
-// };
