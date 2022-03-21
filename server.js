@@ -16,9 +16,10 @@ See https://github.com/yagop/node-telegram-bot-api/issues/319. node:internal\mod
 // process.env.NTBA_FIX_319 = 1;
 
 import dotenv from "dotenv";
-import { findByID, fastIDCount, insertUser } from "./dbop.js";
+import { findByUsername, fastUserCount, insertUser } from "./dbop.js";
 import { renderChart } from "./renderchart.js";
 import TelegramBot from "node-telegram-bot-api";
+import { print } from "./misc/print.js";
 
 // .env 사용하기
 dotenv.config();
@@ -27,17 +28,17 @@ const token = process.env.TELEGRAM_BOT_TOKEN;
 // 텔레그램 봇 인스턴스
 const bot = new TelegramBot(token, { polling: true });
 // 최대 사용자 인원
-const max_user_quota = 10;
+const max_user_quota = 4;
 
 // 봇체크
 bot.getMe().then((info) => {
-  console.log(`${info.first_name} is ready, the botname is @${info.username}`);
+  print(`${info.first_name} is ready, the botname is @${info.username}`);
 });
 
 // /start 입력 받을 때
 bot.onText(/\/start/, async (msg) => {
-  const usercount = await fastIDCount();
-  // console.log("usercount : " + usercount);
+  const usercount = await fastUserCount();
+  // print("usercount : " + usercount);
 
   const chatId = msg.chat.id;
   // const newUser = msg.new_chat_members;
@@ -49,59 +50,59 @@ bot.onText(/\/start/, async (msg) => {
       : userLastName + " " + userFirstName;
   const userName = msg.chat.username;
   const messageText = msg.text || "no text";
-  const lastDateOfCommand = msg.date;
-
   /**
    * new Date(msg.date * 1000) = 현재 날짜 시간 출력. new Date() 붙이려면 1000을 꼭 곱해야 한다.
    * msg.data * 1000 일때 1000이 1초. 계산에 1000이 꼭 필요한건 아니니 1000은 제거.
    * 그러면 msg.data 자체 일때는 1초가 1. 이 때 하루는 86400초. 일주일은 604800이다.
    * db에서 lastcmd가 604800 이상 차이나면 일주일간 접속 기록이 없는것이다.
    */
-  const lastCommand = msg.date;
+  const lastCommandTimestamp = msg.date;
 
-  // 정원이 다 찼을 때
-  if (usercount >= max_user_quota) {
-    const sorrymsg = `${userFullName} 님 죄송합니다. 최대인원정원이 다 찼습니다.
-      원활한 서비스를 위해 어쩔수 없이 정원을 두게 되어 죄송합니다.
-      경제적 여건이 허락한다면 서버를 더 늘려 더 많은 분들을 모시면 하는 바람입니다.
-      봇에 대한 문의나 기타 코인관련 이야기는 https://t.me/talkaboutcoins`;
-    bot.sendMessage(chatId, sorrymsg, commandOptions);
-    return; // 정원이 다 차면 여기서 리턴하고 함수 종료
+  // DB에서 유저네임으로 사용자 찾기
+  let result = await findByUsername(userName);
+  if (result === "nomatch") {
+    // 정원이 다 찼을 때
+    if (usercount >= max_user_quota) {
+      const sorrymsg = `${userFullName} 님 죄송합니다. 최대인원정원이 다 찼습니다.
+        원활한 서비스를 위해 어쩔수 없이 정원을 두게 되었습니다.
+        경제적 여건이 허락한다면 서버를 더 늘려 더 많은 분들을 모시면 하는 바람입니다.
+        봇에 대한 문의나 기타 코인관련 이야기는 https://t.me/talkaboutcoins`;
+      bot.sendMessage(chatId, sorrymsg);
+      return; // 정원이 다 차면 여기서 리턴하고 함수 종료
 
-    // 정원이 다 차지 않았을 때
-  } else {
-    let result = await findByID(userName);
-    if (result === "nomatch") {
+      // 정원이 다 차지 않았을 때
+    } else {
       // db에 없는 경우, 신규추가 대상
       result = await insertUser(
         userName,
         userFullName,
         chatId,
         messageText,
-        lastDateOfCommand
+        lastCommandTimestamp
       );
+
       if (result == "ok") {
-        console.log(userName, "become a member");
+        print(`신규유저 ${userFullName} 추가 완료`);
       }
     }
-
-    // 신규가입이든 기존회원이든 환영메세지는 출력
-    const welcome_message = `안녕하세요 ${userFullName}님. 오늘도 성공투자하세요!`;
-    const commandOptions = {
-      reply_markup: JSON.stringify({
-        keyboard: [
-          ["📋 메뉴1번"],
-          ["📈 메뉴2번", "➕ 메뉴3번"],
-          ["▶️ 메뉴4번", "⏸ 메뉴5번", "❌ 메뉴6번"],
-          ["⚙ 메뉴7번", "❔ 메뉴8번"],
-        ],
-      }),
-      parse_mode: "html",
-      disable_web_page_preview: true,
-    };
-
-    bot.sendMessage(chatId, welcome_message, commandOptions);
   }
+  
+  // 정원이 다 안찼거나 다 찼어도 기존 유저는 환영메세지
+  const welcome_message = `안녕하세요 ${userFullName}님. 오늘도 성공투자하세요!`;
+  const commandOptions = {
+    reply_markup: JSON.stringify({
+      keyboard: [
+        ["📋 메뉴1번"],
+        ["📈 메뉴2번", "➕ 메뉴3번"],
+        ["▶️ 메뉴4번", "⏸ 메뉴5번", "❌ 메뉴6번"],
+        ["⚙ 메뉴7번", "❔ 메뉴8번"],
+      ],
+    }),
+    parse_mode: "html",
+    disable_web_page_preview: true,
+  };
+
+  bot.sendMessage(chatId, welcome_message, commandOptions);
 });
 
 bot.onText(/\/coin/, async (msg) => {});

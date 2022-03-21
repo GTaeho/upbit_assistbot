@@ -26,28 +26,10 @@ export const startAlarm = () => {
   setInterval(async () => {
     const date = new Date();
     const minute_now = date.getMinutes();
-    
+
     // 매 분마다 실행
     if (minute_now !== prev_minute) {
       prev_minute = minute_now;
-
-      // 업비트에서 KRW-BTC 가격가져오기
-      // const data = await raw_sample_data();
-      // const macdInput = {
-      //   values: data,
-      //   fastPeriod: 12,
-      //   slowPeriod: 26,
-      //   signalPeriod: 9,
-      //   SimpleMAOscillator: false,
-      //   SimpleMASignal: false,
-      // };
-      // let result = ta.macd(macdInput);
-      // print(result[result.length - 5]);
-      // print(result[result.length - 4]);
-      // print(result[result.length - 3]);
-      // print(result[result.length - 2]); // 방금 종료된 이전 봉
-      // print(result[result.length - 1]); // 지금 막 시작된 움직이는 봉
-      // print("-------------------------");
 
       /**
        * for loop 을 돌 때는 성능을 위해서는 클래식 for loop 에 사이즈가 정해진것이 가장 빠르다.
@@ -57,21 +39,30 @@ export const startAlarm = () => {
       // username, chatid, coin, timeframe 받아와서 정리하기
       // [ { username: prid77, chatid: 447679971, coin: 'KRW-BTC', timeframe: '5' } ] 이런 형식
       const rows = await lookupUCCTByTF("1");
+      const timeframe = "1";
       if (rows !== undefined) {
-        print("매 분 실행");
+        print("매 1분 실행");
+        print(
+          "----------------------------------------------------------------"
+        );
       }
 
       // 매 3분마다 실행
       if (minute_now % 3 === 0) {
+        const timeframe = "3";
         const rows = await lookupUCCTByTF("3");
         if (rows !== undefined) {
+          print("매 3분 실행");
+          print(
+            "----------------------------------------------------------------"
+          );
         }
       }
 
       // 매 5분마다 실행
       if (minute_now % 5 === 0) {
-      // 1분마다로 빠르게 테스트 할 때는 아래 줄 쓰기
-      // if (rows !== undefined) {
+        // 1분마다로 빠르게 테스트 할 때는 아래 줄 쓰기
+        // if (rows !== undefined) {
         // username, chatid, coin, ta 리턴
         const timeframe = "5";
         const rows = await lookupUCCTByTF(timeframe);
@@ -90,10 +81,10 @@ export const startAlarm = () => {
             // coin 테이블이 있는지 확인
             const isTableExists = await checkTableExists(coin, timeframe);
             print(
-              `${username} : ${coin} -> isTableExists : `,
-              isTableExists,
-              ", ta : ",
-              ta
+              `${username} : ${coin} -> isTableExists : ` +
+                isTableExists +
+                ", ta : " +
+                ta
             );
 
             // 있으면 db 에서 데이터 읽어와서 TA
@@ -121,7 +112,7 @@ export const startAlarm = () => {
               if (insertResult == "ok") {
                 const rows = await readExistingCoinData(coin, timeframe);
                 const taResult = runTA(coin, rows, ta);
-                print("TA 결과 : ", taResult);
+                print("TA 결과 : " + JSON.stringify(taResult));
               }
             }
           }
@@ -131,44 +122,67 @@ export const startAlarm = () => {
             coinTablePlaceholder,
             timeframe
           );
-          if (dropResult == "ok") print("테이블 삭제 완료");
+          if (dropResult == "ok") {
+            print("테이블 삭제 완료");
+            print(
+              "----------------------------------------------------------------"
+            );
+          }
         }
-      }
 
-      // 매 10분마다 실행
-      if (minute_now % 10 === 0) {
-        const rows = await lookupUCCTByTF("10");
-        if (rows !== undefined) {
-          print("매 10분 마크");
+        // 매 10분마다 실행
+        if (minute_now % 10 === 0) {
+          const timeframe = "10";
+          const rows = await lookupUCCTByTF("10");
+          if (rows !== undefined) {
+            print("매 10분 마크");
+            print(
+              "----------------------------------------------------------------"
+            );
+          }
         }
-      }
 
-      // 매 15분마다 실행
-      if (minute_now % 15 === 0) {
-        const rows = await lookupUCCTByTF("15");
-        if (rows !== undefined) {
-          print("매 15분 마크");
+        // 매 15분마다 실행
+        if (minute_now % 15 === 0) {
+          const timeframe = "15";
+          const rows = await lookupUCCTByTF("15");
+          if (rows !== undefined) {
+            print("매 15분 마크");
+            print(
+              "----------------------------------------------------------------"
+            );
+          }
         }
-      }
 
-      // 매 30분마다 실행
-      if (minute_now % 30 === 0) {
-        const rows = await lookupUCCTByTF("30");
-        if (rows !== undefined) {
+        // 매 30분마다 실행
+        if (minute_now % 30 === 0) {
+          const timeframe = "30";
+          const rows = await lookupUCCTByTF("30");
+          if (rows !== undefined) {
+            print("매 30분 마크");
+            print(
+              "----------------------------------------------------------------"
+            );
+          }
         }
-      }
 
-      // 매 60분마다 실행
-      if (minute_now % 60 === 0) {
-        const rows = await lookupUCCTByTF("60");
-        if (rows !== undefined) {
+        // 매 60분마다 실행
+        if (minute_now % 60 === 0) {
+          const timeframe = "60";
+          const rows = await lookupUCCTByTF("60");
+          if (rows !== undefined) {
+            print("매 60분 마크");
+            print(
+              "----------------------------------------------------------------"
+            );
+          }
         }
       }
     }
   }, 7000);
 };
 
-startAlarm();
+// startAlarm();
 
 // 기술적지표 분석 -> 신호발생 여부 판단하기
 const runTA = (coin_symbol, data, ta_symbol) => {
@@ -201,6 +215,12 @@ const runTA = (coin_symbol, data, ta_symbol) => {
       // print(macdOutput[macdOutput.length - 1]);
       obp_macdhist = macdOutput[macdOutput.length - 3]["histogram"];
       last_macdhist = macdOutput[macdOutput.length - 2]["histogram"];
+      print(
+        "runTA macdco, obp_macdhist : " +
+          obp_macdhist +
+          ", last_macdhist : " +
+          last_macdhist
+      );
       if (obp_macdhist < 0 && last_macdhist > 0) {
         return {
           coin: coin_symbol,
@@ -226,6 +246,12 @@ const runTA = (coin_symbol, data, ta_symbol) => {
       // print(macdOutput[macdOutput.length - 1]);
       obp_macdhist = macdOutput[macdOutput.length - 3]["histogram"];
       last_macdhist = macdOutput[macdOutput.length - 2]["histogram"];
+      print(
+        "runTA macdcu, obp_macdhist : " +
+          obp_macdhist +
+          ", last_macdhist : " +
+          last_macdhist
+      );
       if (obp_macdhist > 0 && last_macdhist < 0) {
         return {
           coin: coin_symbol,

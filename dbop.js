@@ -9,6 +9,7 @@
 */
 
 import sqlite3 from "sqlite3";
+import { print } from "./misc/print.js";
 
 // db 생성 - 신기하다. 여기서만 생성하면 db.xxx 이름으로 시작되는 모든 작업이 사용가능
 const userdb = new sqlite3.Database("./db/users.db");
@@ -21,20 +22,44 @@ const coindb30min = new sqlite3.Database("./db/coin30min.db");
 const coindb60min = new sqlite3.Database("./db/coin60min.db");
 
 // userdb 개수 빨리 세서 리턴
-export const fastIDCount = () => {
+export const fastUserCount = () => {
   return new Promise((resolve, reject) => {
     const fastCountQuery = `SELECT COUNT(id) from users`;
     userdb.get(fastCountQuery, (err, row) => {
       if (err) reject(err);
       const result = row["COUNT(id)"];
-      console.log("");
       resolve(result);
     });
   });
 };
 
 // username 으로 userdb 조회 있으면 그 줄 리턴
-export const findByID = (username) => {
+export const findByUsername = (username) => {
+  return new Promise((resolve, reject) => {
+    const query = `SELECT username FROM users WHERE username = '${username}'`;
+    userdb.get(query, (err, row) => {
+      if (err) {
+        reject(err);
+        // // db에 매치되는 사람 없을 때 - 신규회원
+        // if (err.message === `SQLITE_ERROR: no such column: ${username}`) {
+        //   resolve("nomatch");
+        // }
+      } else {
+        // 찾은 유저네임을 리턴 - 없으면 undefined 리턴
+        // 여기서 username 이 찾은 내용이 없을때 row['username'] 이라고 접근만해도 오류로 뻗는다.
+        if (row == undefined) {
+          resolve("nomatch");
+        } else {
+          const result = row["username"];
+          resolve(result);
+        }
+      }
+    });
+  });
+};
+
+//
+export const findLastcmdByChatID = (chatid) => {
   return new Promise((resolve, reject) => {
     const query = `SELECT username FROM users WHERE username = '${username}'`;
     userdb.get(query, (err, row) => {
@@ -85,7 +110,6 @@ export const insertUser = (
       [username, userfullname, chatid, msgtext, lastcmd],
       (err) => {
         if (err) reject(err);
-        console.log("insertUser() done successfully");
         resolve("ok");
       }
     );
@@ -186,9 +210,7 @@ export const insertCoinData = (market, data, timeframe) => {
        */
       statement.finalize(() => {
         // statement.finalize() 까지 완성되는것이 꼭, 반드시 중요하다.
-        console.log(
-          "DB에 데이터 자료 입력 완료"
-        );
+        print("DB에 데이터 자료 입력 완료");
         // close는 꼭 serialize() 다 끝난 뒤에. 안에 넣으면 error
         // db는 닫지 말자. 한 번 닫으면 또 쓸때 또 열어야 한다.
         // coindb.close();
@@ -200,7 +222,7 @@ export const insertCoinData = (market, data, timeframe) => {
 
 // 'market' 컬럼에서 종가(close-업비트에서는 trade_price) 읽어오기
 export const readExistingCoinData = (market, timeframe) => {
-  console.log('DB에서 자료 읽어오기 시작')
+  print("DB에서 자료 읽어오기 시작");
   return new Promise((resolve, reject) => {
     const query = `SELECT trade_price FROM '${market}'`;
     // timeframe에 맞는 db가져오기
@@ -222,7 +244,7 @@ export const checkTableExists = (market, timeframe) => {
     db.all(query, (err, rows) => {
       if (err) reject(err);
       // row.length 가 0이면 테이블이 없고 1 이상(컬럼수)이면 테이블이 있다.
-      // console.log("rows.length : ", rows.length);
+      // print("rows.length : ", rows.length);
       if (rows.length == 0) resolve(false);
       else resolve(true);
     });
@@ -238,9 +260,9 @@ export const dropTableIfExists = (coinTablePlaceholder, timeframe) => {
       const tablename = coinTablePlaceholder[i];
       const query = `DROP TABLE IF EXISTS '${tablename}'`;
       db.run(query, (err) => {
-        if (err) reject(err)
-        resolve("ok")
-      })
+        if (err) reject(err);
+        resolve("ok");
+      });
     }
   });
 };
