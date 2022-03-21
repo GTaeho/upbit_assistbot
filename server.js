@@ -17,7 +17,7 @@ See https://github.com/yagop/node-telegram-bot-api/issues/319. node:internal\mod
 
 import dotenv from "dotenv";
 import { findByUsername, fastUserCount, insertUser } from "./dbop.js";
-import { renderChart } from "./renderchart.js";
+import { sample_chart, renderChart } from "./renderchart.js";
 import TelegramBot from "node-telegram-bot-api";
 import { print } from "./misc/print.js";
 
@@ -86,7 +86,7 @@ bot.onText(/\/start/, async (msg) => {
       }
     }
   }
-  
+
   // 정원이 다 안찼거나 다 찼어도 기존 유저는 환영메세지
   const welcome_message = `안녕하세요 ${userFullName}님. 오늘도 성공투자하세요!`;
   const commandOptions = {
@@ -143,30 +143,148 @@ bot.onText(/\/image/, async (msg) => {
 //   const messageText = msg.text || "no text";
 // });
 
-export const sendPhoto = async (chatid, ta) => {
-  const buffer = undefined;
+// const signalData = {
+//   chatid: chatid,
+//   coin: coin,
+//   timeframe: timeframe,
+//   taSymbol: taResult.signalType,
+//   labels: taResult.xdata,
+//   data: taResult.data,
+// };
+// export const sendChart = async (chatid, coin, ta, signalData) => {
+export const sendChart = async (signalData) => {
   switch (ta) {
-    case "macdco":
-      buffer = await renderChart();
+    case "macdco": {
+      print(signalData.data.length);
+      let macdArray = [];
+      let macdSignalArray = [];
+      for (
+        let i = 0, signalDatalen = signalData.data.length;
+        i < signalDatalen;
+        i++
+      ) {
+        macdArray.push(signalData.data[i].MACD);
+        macdSignalArray.push(signalData.data[i].signal);
+      }
+
+      const chartConfigurations = {
+        type: "line",
+        data: {
+          labels: signalData.labels,
+          datasets: [
+            {
+              label: "MACD 라인",
+              data: macdArray,
+              borderColor: "rgb(68, 166, 245)",
+            },
+            {
+              label: "SIGNAL 라인",
+              data: macdSignalArray,
+              borderColor: "rgb(255, 124, 26)",
+            },
+          ],
+        },
+        options: {
+          plugins: {
+            title: {
+              color: "black",
+              display: true,
+              text: `${signalData.coin} / ${signalData.timeframe}분봉`,
+            },
+          },
+          // layout: { padding: { left: 50 } },
+        },
+      };
+
+      const Opts = {
+        reply_to_message_id: signalData.chatid,
+        // reply_markup: JSON.stringify({
+        //   keyboard: [
+        //     ["Yes, you are the bot of my life ❤"],
+        //     ["No, sorry there is another one..."],
+        //   ],
+        // }),
+      };
+      const buffer = await renderChart(chartConfigurations);
+      await bot.sendPhoto(signalData.chatid, buffer, {}, Opts);
       break;
-    case "macdcu":
+    }
+
+    case "macdcu": {
+      const chartConfigurations = {
+        type: "line",
+        data: {
+          labels: signalData.labels,
+          datasets: [
+            {
+              label: "MACD 라인",
+              data: macdArray,
+              borderColor: "rgb(68, 166, 245)",
+            },
+            {
+              label: "SIGNAL 라인",
+              data: macdSignalArray,
+              borderColor: "rgb(255, 124, 26)",
+            },
+          ],
+        },
+        options: {
+          plugins: {
+            title: {
+              color: "black",
+              display: true,
+              text: `${signalData.coin} / ${signalData.timeframe}분봉`,
+            },
+          },
+          // layout: { padding: { left: 50 } },
+        },
+      };
+
+      const Opts = {
+        reply_to_message_id: signalData.chatid,
+        // reply_markup: JSON.stringify({
+        //   keyboard: [
+        //     ["Yes, you are the bot of my life ❤"],
+        //     ["No, sorry there is another one..."],
+        //   ],
+        // }),
+      };
+      const buffer = await renderChart(chartConfigurations);
+      await bot.sendPhoto(signalData.chatid, buffer, {}, Opts);
       break;
-    case "macdcozero":
+    }
+    case "macdcozero": {
       break;
-    case "macdcuzero":
+    }
+
+    case "macdcuzero": {
       break;
-    case "rsicu":
+    }
+
+    case "rsicu": {
       break;
-    case "rsieos":
+    }
+
+    case "rsieos": {
       break;
-    case "rsibrov50":
+    }
+
+    case "rsibrov50": {
       break;
-    case "rsibrdn50":
+    }
+
+    case "rsibrdn50": {
       break;
-    case "rsiobco":
+    }
+
+    case "rsiobco": {
       break;
-    case "rsiobcu":
+    }
+
+    case "rsiobcu": {
       break;
+    }
+
     default:
       break;
   }

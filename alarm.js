@@ -9,7 +9,7 @@
 */
 
 import ta from "technicalindicators";
-import { sendPhoto } from "./server.js";
+import { sendChart } from "./server.js";
 import {
   createCoinMarketTable,
   insertCoinData,
@@ -60,11 +60,12 @@ export const startAlarm = () => {
       }
 
       // 매 5분마다 실행
-      if (minute_now % 5 === 0) {
-        // 1분마다로 빠르게 테스트 할 때는 아래 줄 쓰기
-        // if (rows !== undefined) {
-        // username, chatid, coin, ta 리턴
+      // if (minute_now % 5 === 0) {
+      // 1분마다로 빠르게 테스트 할 때는 아래 줄 쓰기
+      if (rows !== undefined) {
+        print("매 5분 실행");
         const timeframe = "5";
+        // username, chatid, coin, ta 리턴
         const rows = await lookupUCCTByTF(timeframe);
         if (rows !== undefined) {
           // print(rows);
@@ -92,9 +93,17 @@ export const startAlarm = () => {
               const rows = await readExistingCoinData(coin, timeframe);
               // print(rows);
               const taResult = runTA(coin, rows, ta);
-              if (taResult.signal === "MACDCO_SIGNAL") {
-                print(`${coin} : 5분봉 ${taResult.signal} 신호발생`);
-              } else if (taResult.signal === "NO_SIGNAL") {
+              print("TA 결과 : " + JSON.stringify(taResult));
+              if (taResult.signal == "SIGNAL") {
+                const signalData = {
+                  chatid: chatid,
+                  coin: coin,
+                  timeframe: timeframe,
+                  taSymbol: taResult.signalType,
+                  labels: taResult.xdata,
+                  data: taResult.data,
+                };
+                sendChart(signalData);
               }
 
               // 없으면 테이블만들고, 업비트에서 데이터 받아오고 테이블에 자료 넣기
@@ -113,6 +122,17 @@ export const startAlarm = () => {
                 const rows = await readExistingCoinData(coin, timeframe);
                 const taResult = runTA(coin, rows, ta);
                 print("TA 결과 : " + JSON.stringify(taResult));
+                if (taResult.signal == "SIGNAL") {
+                  const signalData = {
+                    chatid: chatid,
+                    coin: coin,
+                    timeframe: timeframe,
+                    taSymbol: taResult.signalType,
+                    labels: taResult.xdata,
+                    data: taResult.data,
+                  };
+                  sendChart(signalData);
+                }
               }
             }
           }
@@ -187,84 +207,124 @@ export const startAlarm = () => {
 // 기술적지표 분석 -> 신호발생 여부 판단하기
 const runTA = (coin_symbol, data, ta_symbol) => {
   print(`${coin_symbol} 기술분석(${ta_symbol}) 시작`);
-
-  // 스위치 안에서 쓰일 것들
-  let arrdata = [];
-  const macdInput = {
-    values: arrdata,
-    fastPeriod: 12,
-    slowPeriod: 26,
-    signalPeriod: 9,
-    SimpleMAOscillator: false,
-    SimpleMASignal: false,
-  };
-  let macdOutput = undefined;
-  let obp_macdhist = undefined;
-  let last_macdhist = undefined;
-
   switch (ta_symbol) {
-    case "macdco":
+    case "macdco": {
+      let arrdata = [];
+      let xdata = []; // xdata는 x축 데이터 : 년월일시분
       // data = [{trade_price: 얼마얼마}] 이런 식
       for (let i = 0, datalen = data.length; i < datalen; i++) {
         arrdata.push(data[i]["trade_price"]);
+        xdata.push(data[i]["candle_date_time_kst"]);
       }
       // print("arrdata.length = ", arrdata.length);
-      macdOutput = ta.macd(macdInput);
+      const macdInput = {
+        values: arrdata,
+        fastPeriod: 12,
+        slowPeriod: 26,
+        signalPeriod: 9,
+        SimpleMAOscillator: false,
+        SimpleMASignal: false,
+      };
+
+      // macd 계산을하면 slowPeriod - 1 만큼 데이터 갯수가 줄어든다.
+      // 200개를 받아왔을때 slowPeriod가 26이면 25개 줄어들어서 총 데이터는 175개가 리턴된다.
+      // 계산값은 정확하다. xdata 시간도 slowPeriod-1 개 만큼 줄여서 sendChart에 보내야한다.
+      let macdOutput = ta.macd(macdInput); // macdOutput은 arrdata - slowPeriod-1 한 값이 나온다.
+      macdOutput = macdOutput.slice(155); // 이렇게 해서 macdOutuput은 최근 20개만 남기고 삭제
+      xdata = xdata.slice(180); // xdata도 마찬가지로 최근 20개만 남기고 삭제
+
       // print(macdOutput[macdOutput.length - 3]);
       // print(macdOutput[macdOutput.length - 2]);
       // print(macdOutput[macdOutput.length - 1]);
-      obp_macdhist = macdOutput[macdOutput.length - 3]["histogram"];
-      last_macdhist = macdOutput[macdOutput.length - 2]["histogram"];
+      const obp_macdhist = macdOutput[macdOutput.length - 3]["histogram"];
+      const last_macdhist = macdOutput[macdOutput.length - 2]["histogram"];
+      // 신호검증용 디버그 - 필요여부에 따라 주석처리
       print(
         "runTA macdco, obp_macdhist : " +
           obp_macdhist +
           ", last_macdhist : " +
           last_macdhist
       );
+
+      // hist만 비교해도 macd와 macd signal 선 크로스오버 검출 가능
       if (obp_macdhist < 0 && last_macdhist > 0) {
         return {
           coin: coin_symbol,
-          ta: ta_symbol,
-          signal: "MACDCO_SIGNAL",
+          signal: "SIGNAL",
+          signalType: ta_symbol,
+          data: macdOutput,
+          xdata: xdata,
         };
+
+        // 신호 없을때는 data 넣을 필요 없음
       } else {
         return {
           coin: coin_symbol,
-          ta: ta_symbol,
           signal: "NO_SIGNAL",
+          signalType: ta_symbol,
         };
       }
-    case "macdcu":
+    }
+
+    case "macdcu": {
+      let arrdata = [];
+      let xdata = []; // xdata는 x축 데이터 : 년월일시분
       // data = [{trade_price: 얼마얼마}] 이런 식
       for (let i = 0, datalen = data.length; i < datalen; i++) {
         arrdata.push(data[i]["trade_price"]);
+        xdata.push(data[i]["candle_date_time_kst"]);
       }
+
+      const macdInput = {
+        values: arrdata,
+        fastPeriod: 12,
+        slowPeriod: 26,
+        signalPeriod: 9,
+        SimpleMAOscillator: false,
+        SimpleMASignal: false,
+      };
+
       // print("arrdata.length = ", arrdata.length);
-      macdOutput = ta.macd(macdInput);
+      // macd 계산을하면 slowPeriod - 1 만큼 데이터 갯수가 줄어든다.
+      // 200개를 받아왔을때 slowPeriod가 26이면 25개 줄어들어서 총 데이터는 175개가 리턴된다.
+      // 계산값은 정확하다. xdata 시간도 slowPeriod-1 개 만큼 줄여서 sendChart에 보내야한다.
+      let macdOutput = ta.macd(macdInput); // macdOutput은 arrdata - slowPeriod-1 한 값이 나온다.
+      macdOutput = macdOutput.slice(155); // 이렇게 해서 macdOutuput은 최근 20개만 남기고 삭제
+      xdata = xdata.slice(180); // xdata도 마찬가지로 최근 20개만 남기고 삭제
+
       // print(macdOutput[macdOutput.length - 3]);
       // print(macdOutput[macdOutput.length - 2]);
       // print(macdOutput[macdOutput.length - 1]);
-      obp_macdhist = macdOutput[macdOutput.length - 3]["histogram"];
-      last_macdhist = macdOutput[macdOutput.length - 2]["histogram"];
+      const obp_macdhist = macdOutput[macdOutput.length - 3]["histogram"];
+      const last_macdhist = macdOutput[macdOutput.length - 2]["histogram"];
+      // 신호검증용 디버그 - 필요여부에 따라 주석처리
       print(
         "runTA macdcu, obp_macdhist : " +
           obp_macdhist +
           ", last_macdhist : " +
           last_macdhist
       );
+
+      // obp hist는 양수이다가 last hist가 음수이면 하락돌파
       if (obp_macdhist > 0 && last_macdhist < 0) {
         return {
           coin: coin_symbol,
-          ta: ta_symbol,
-          signal: "MACDCO_SIGNAL",
+          signal: "SIGNAL",
+          signalType: ta_symbol,
+          data: macdOutput,
+          xdata: xdata,
         };
+
+        // 신호 없을때는 data 넣을 필요 없음
       } else {
         return {
           coin: coin_symbol,
-          ta: ta_symbol,
           signal: "NO_SIGNAL",
+          signalType: ta_symbol,
         };
       }
+    }
+
     case "macdcozero":
       break;
     case "macdcuzero":

@@ -39,29 +39,7 @@ export const sample_chart = async () => {
   return await rendrerChartSet640360(config);
 };
 
-export const renderChart = async (coindata) => {
-  const config = {
-    type: "line",
-    data: {
-      // labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
-      datasets: [
-        {
-          label: "KRW-BTC",
-          data: coindata,
-          // borderWidth: 1,
-          borderColor: "rgb(75, 192, 192)",
-        },
-      ],
-    },
-    options: {
-      // scales: {
-      //   y: {
-      //     beginAtZero: true,
-      //   },
-      // },
-    },
-  };
-
+export const renderChart = async (chartConfiguration) => {
   // 메모리 관리를 위해서 같은 객체를 재사용, 렌더 메서드만 사용. new 는 처음에 딱 한번만.
-  return await rendrerChartSet640360(config);
+  return await rendrerChartSet640360(chartConfiguration);
 };

@@ -49,7 +49,7 @@ export const krwbtc_sample_data = async () => {
   return sampleDataArray.reverse();
 };
 
-export const fetchUpbitCoinData = async (marketSymbol, timeframe) => {
+export const fetchUpbitDataXYLineForm = async (marketSymbol, timeframe) => {
   /**
    * 주의할 점은, 한 번에 200개 까지의 캔들을 요청할 수 있으며 이를 초과하는 경우
    * 페이지네이션 기술을 이용해 순차적으로 요청하는 것을 권장합니다.
