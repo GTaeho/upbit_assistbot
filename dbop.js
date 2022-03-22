@@ -220,11 +220,11 @@ export const insertCoinData = (market, data, timeframe) => {
   });
 };
 
-// 'market' 컬럼에서 종가(close-업비트에서는 trade_price) 읽어오기
+// 'market' 컬럼에서 종가(close-업비트에서는 trade_price), 한국시간 읽어오기
 export const readExistingCoinData = (market, timeframe) => {
   print("DB에서 자료 읽어오기 시작");
   return new Promise((resolve, reject) => {
-    const query = `SELECT trade_price FROM '${market}'`;
+    const query = `SELECT trade_price, candle_date_time_kst FROM '${market}'`;
     // timeframe에 맞는 db가져오기
     const db = getDBByTimeframe(timeframe);
     db.all(query, (err, rows) => {

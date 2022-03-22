@@ -153,18 +153,15 @@ bot.onText(/\/image/, async (msg) => {
 // };
 // export const sendChart = async (chatid, coin, ta, signalData) => {
 export const sendChart = async (signalData) => {
-  switch (ta) {
+  switch (signalData.taSymbol) {
     case "macdco": {
-      print(signalData.data.length);
+      // print(signalData.data.length);
       let macdArray = [];
       let macdSignalArray = [];
-      for (
-        let i = 0, signalDatalen = signalData.data.length;
-        i < signalDatalen;
-        i++
-      ) {
-        macdArray.push(signalData.data[i].MACD);
-        macdSignalArray.push(signalData.data[i].signal);
+      for (let i = 0, siglen = signalData.data.length; i < siglen; i++) {
+        // 소수점 아래로 2자리까지만 고정
+        macdArray.push(signalData.data[i].MACD.toFixed(2));
+        macdSignalArray.push(signalData.data[i].signal.toFixed(2));
       }
 
       const chartConfigurations = {
@@ -192,10 +189,8 @@ export const sendChart = async (signalData) => {
               text: `${signalData.coin} / ${signalData.timeframe}분봉`,
             },
           },
-          // layout: { padding: { left: 50 } },
         },
       };
-
       const Opts = {
         reply_to_message_id: signalData.chatid,
         // reply_markup: JSON.stringify({
@@ -211,6 +206,15 @@ export const sendChart = async (signalData) => {
     }
 
     case "macdcu": {
+      // print(signalData.data.length);
+      let macdArray = [];
+      let macdSignalArray = [];
+      for (let i = 0, siglen = signalData.data.length; i < siglen; i++) {
+        // 소수점 아래로 2자리까지만 고정
+        macdArray.push(signalData.data[i].MACD.toFixed(2));
+        macdSignalArray.push(signalData.data[i].signal.toFixed(2));
+      }
+
       const chartConfigurations = {
         type: "line",
         data: {
@@ -287,8 +291,5 @@ export const sendChart = async (signalData) => {
 
     default:
       break;
-  }
-  if (buffer != undefined) {
-    bot.sendPhoto(chatid, buffer, {});
   }
 };
