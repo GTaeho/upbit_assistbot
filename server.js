@@ -20,11 +20,12 @@ import { findByUsername, fastUserCount, insertUser } from "./dbop.js";
 import { sample_chart, renderChart } from "./renderchart.js";
 import TelegramBot from "node-telegram-bot-api";
 import { print } from "./misc/print.js";
+import { fetchAllMarket } from "./upbit.js";
 
 // .env 사용하기
 dotenv.config();
 // 텔레그램 토큰
-const token = process.env.TELEGRAM_BOT_TOKEN;
+const token = process.env.GOLDENGATE_BOT_TOKEN;
 // 텔레그램 봇 인스턴스
 const bot = new TelegramBot(token, { polling: true });
 // 최대 사용자 인원
@@ -101,17 +102,70 @@ bot.onText(/\/start/, async (msg) => {
     parse_mode: "html",
     disable_web_page_preview: true,
   };
-
   bot.sendMessage(chatId, welcome_message, commandOptions);
 });
 
-bot.onText(/\/coin/, async (msg) => {});
+bot.onText(/\/coin/, async (msg) => {
+  const allMarketSymbols = await fetchAllMarket();
+  // print(JSON.stringify(allMarketSymbols));
+  let krwMarketArr = [];
+  let marketArr = [];
+  for (let i = 0, mlen = allMarketSymbols.length; i < mlen; i++) {
+    if (allMarketSymbols[i].market.includes("KRW")) {
+      krwMarketArr.push(allMarketSymbols[i]);
+    }
+  }
+  print(krwMarketArr.length);
+  for (let i = 0, klen = krwMarketArr.length; i + 4 < klen; i += 4) {
+    marketArr.push([
+      {
+        text: krwMarketArr[i].korean_name,
+        callback_data: krwMarketArr[i].market,
+      },
+      {
+        text: krwMarketArr[i + 1].korean_name,
+        callback_data: krwMarketArr[i + 1].market,
+      },
+      {
+        text: krwMarketArr[i + 2].korean_name,
+        callback_data: krwMarketArr[i + 2].market,
+      },
+      {
+        text: krwMarketArr[i + 3].korean_name,
+        callback_data: krwMarketArr[i + 3].market,
+      },
+    ]);
+  }
+  const opts = {
+    reply_to_message_id: msg.message_id,
+    reply_markup: JSON.stringify({
+      inline_keyboard: marketArr,
+    }),
+  };
+  bot.sendMessage(msg.chat.id, "Select One", opts);
+});
 
 bot.onText(/\/timeframe/, async (msg) => {});
 
 bot.onText(/\/ta/, async (msg) => {});
 
-bot.onText(/\/lab/, async (msg) => {});
+bot.onText(/\/lab/, async (msg) => {
+  const opts = {
+    reply_to_message_id: msg.message_id,
+    reply_markup: JSON.stringify({
+      inline_keyboard: [
+        [
+          { text: "Click ME1!", callback_data: "click1" },
+          {
+            text: "Click ME2!",
+            callback_data: "click2",
+          },
+        ],
+      ],
+    }),
+  };
+  bot.sendMessage(msg.chat.id, "Select One", opts);
+});
 
 bot.onText(/\/image/, async (msg) => {
   const opts = {
@@ -128,21 +182,34 @@ bot.onText(/\/image/, async (msg) => {
   bot.sendPhoto(chatId, buffer, {}, opts);
 });
 
-// // 모든 메세지를 받아서 DB에 업데이트
-// bot.on("message", function (msg) {
-//   const lastDateOfCommand = new Date(msg.date * 1000);
-//   const userName = msg.chat.username || "no username provided";
-//   const chatId = msg.chat.id;
-//   const userFirstName = msg.chat.first_name;
-//   const userLastName = msg.chat.last_name;
-//   const userFullname =
-//     userLastName === undefined
-//       ? userFirstName
-//       : userLastName + " " + userFirstName;
-//   const messageId = msg.message_id;
-//   const messageText = msg.text || "no text";
-// });
+bot.on("callback_query", (msg) => {
+  const callbackData = msg.data;
+  switch (callbackData) {
+    case "click1":
+      print("click1");
+      break;
+    case "click2":
+      print("click2");
+      break;
+  }
+  const opts = {
+    reply_to_message_id: msg.message_id,
+    reply_markup: JSON.stringify({
+      inline_keyboard: [
+        [
+          { text: "Click ME2!", callback_data: "click2" },
+          {
+            text: "Click ME1!",
+            callback_data: "click1",
+          },
+        ],
+      ],
+    }),
+  };
+  bot.answerCallbackQuery(msg.id, "OK, here you go!", opts);
+});
 
+// 사용자에게 차트 보내기
 // const signalData = {
 //   chatid: chatid,
 //   coin: coin,
@@ -151,7 +218,6 @@ bot.onText(/\/image/, async (msg) => {
 //   labels: taResult.xdata,
 //   data: taResult.data,
 // };
-// export const sendChart = async (chatid, coin, ta, signalData) => {
 export const sendChart = async (signalData) => {
   switch (signalData.taSymbol) {
     case "macdco": {
@@ -170,12 +236,12 @@ export const sendChart = async (signalData) => {
           labels: signalData.labels,
           datasets: [
             {
-              label: "MACD 라인",
+              label: "MACD Line",
               data: macdArray,
               borderColor: "rgb(68, 166, 245)",
             },
             {
-              label: "SIGNAL 라인",
+              label: "SIGNAL Line",
               data: macdSignalArray,
               borderColor: "rgb(255, 124, 26)",
             },
@@ -186,7 +252,7 @@ export const sendChart = async (signalData) => {
             title: {
               color: "black",
               display: true,
-              text: `${signalData.coin} / ${signalData.timeframe}분봉`,
+              text: `${signalData.coin} / ${signalData.timeframe} Minute`,
             },
           },
         },
@@ -221,12 +287,12 @@ export const sendChart = async (signalData) => {
           labels: signalData.labels,
           datasets: [
             {
-              label: "MACD 라인",
+              label: "MACD Line",
               data: macdArray,
               borderColor: "rgb(68, 166, 245)",
             },
             {
-              label: "SIGNAL 라인",
+              label: "SIGNAL Line",
               data: macdSignalArray,
               borderColor: "rgb(255, 124, 26)",
             },
@@ -237,7 +303,7 @@ export const sendChart = async (signalData) => {
             title: {
               color: "black",
               display: true,
-              text: `${signalData.coin} / ${signalData.timeframe}분봉`,
+              text: `${signalData.coin} / ${signalData.timeframe} Minute`,
             },
           },
           // layout: { padding: { left: 50 } },
@@ -293,3 +359,18 @@ export const sendChart = async (signalData) => {
       break;
   }
 };
+
+// // 모든 메세지를 받아서 DB에 업데이트
+// bot.on("message", function (msg) {
+//   const lastDateOfCommand = new Date(msg.date * 1000);
+//   const userName = msg.chat.username || "no username provided";
+//   const chatId = msg.chat.id;
+//   const userFirstName = msg.chat.first_name;
+//   const userLastName = msg.chat.last_name;
+//   const userFullname =
+//     userLastName === undefined
+//       ? userFirstName
+//       : userLastName + " " + userFirstName;
+//   const messageId = msg.message_id;
+//   const messageText = msg.text || "no text";
+// });
