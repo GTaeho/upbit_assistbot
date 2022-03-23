@@ -58,6 +58,18 @@ export const findByUsername = (username) => {
   });
 };
 
+// 사용자가 지정한 코인 읽어오기
+export const readUserCoin = (chatid) => {
+  return new Promise((resolve, reject) => {
+    const query = `SELECT coin FROM users WHERE chatid = ${chatid}`;
+    userdb.get(query, (err, data) => {
+      if (err) reject(err);
+      // row는 null 이 될 수 없다. not null row이고, 회원추가시에 기본 KRW-BTC가 생성된다.
+      resolve(data);
+    });
+  });
+};
+
 //
 export const findLastcmdByChatID = (chatid) => {
   return new Promise((resolve, reject) => {

@@ -10,6 +10,13 @@
 
 import fetch from "node-fetch";
 
+// 현재가 조회
+export const getTicker = async (symbol) => {
+  const res = await fetch(`https://api.upbit.com/v1/ticker?markets=${symbol}`);
+  const data = await res.json();
+  return data;
+};
+
 export const raw_sample_data = async () => {
   /**
    * 주의할 점은, 한 번에 200개 까지의 캔들을 요청할 수 있으며 이를 초과하는 경우
