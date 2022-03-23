@@ -16,11 +16,16 @@ See https://github.com/yagop/node-telegram-bot-api/issues/319. node:internal\mod
 // process.env.NTBA_FIX_319 = 1;
 
 import dotenv from "dotenv";
-import { findByUsername, fastUserCount, insertUser } from "./dbop.js";
+import {
+  findByUsername,
+  fastUserCount,
+  insertUser,
+  readUserCoin,
+} from "./dbop.js";
 import { sample_chart, renderChart } from "./renderchart.js";
 import TelegramBot from "node-telegram-bot-api";
 import { print } from "./misc/print.js";
-import { fetchAllMarket } from "./upbit.js";
+import { fetchAllMarket, getTicker } from "./upbit.js";
 
 // .env 사용하기
 dotenv.config();
@@ -90,23 +95,24 @@ bot.onText(/\/start/, async (msg) => {
 
   // 정원이 다 안찼거나 다 찼어도 기존 유저는 환영메세지
   const welcome_message = `안녕하세요 ${userFullName}님. 오늘도 성공투자하세요!`;
-  const commandOptions = {
+  const startOptions = {
     reply_markup: JSON.stringify({
       keyboard: [
-        ["📋 메뉴1번"],
-        ["📈 메뉴2번", "➕ 메뉴3번"],
-        ["▶️ 메뉴4번", "⏸ 메뉴5번", "❌ 메뉴6번"],
+        ["📈 현재가조회", "➕ 코인선택"],
         ["⚙ 메뉴7번", "❔ 메뉴8번"],
+        ["📋 공지사항"],
+        ["💰 따뜻한 후원"],
       ],
     }),
     parse_mode: "html",
     disable_web_page_preview: true,
   };
-  bot.sendMessage(chatId, welcome_message, commandOptions);
+  bot.sendMessage(chatId, welcome_message, startOptions);
 });
 
 bot.onText(/\/coin/, async (msg) => {
   const allMarketSymbols = await fetchAllMarket();
+
   // print(JSON.stringify(allMarketSymbols));
   let krwMarketArr = [];
   let marketArr = [];
@@ -182,7 +188,91 @@ bot.onText(/\/image/, async (msg) => {
   bot.sendPhoto(chatId, buffer, {}, opts);
 });
 
-bot.on("callback_query", (msg) => {
+// 키보드 팝업 메뉴 처리
+bot.on("message", async (msg) => {
+  // ["📈 현재가조회", "➕ 코인선택"],
+  //       ["⚙ 메뉴7번", "❔ 메뉴8번"],
+  //       ["📋 공지사항"],
+  //       ["💰 따뜻한 후원"],
+
+  switch (msg.text) {
+    case "📈 현재가조회": {
+      const data = await readUserCoin(msg.chat.id);
+      const coinArr = data.coin.split(",");
+      const coinCallback = [];
+      for (let key in coinArr) {
+        const coinSymbol = coinArr[key];
+        coinCallback.push({
+          text: coinSymbol,
+          callback_data: `getTicker,${coinSymbol},${msg.chat.id}`,
+        });
+      }
+      const opts = {
+        reply_to_message_id: msg.message_id,
+        reply_markup: JSON.stringify({
+          inline_keyboard: [coinCallback],
+        }),
+      };
+      bot.sendMessage(msg.chat.id, "조회할 코인을 선택하세요", opts);
+      break;
+    }
+    case "➕ 코인선택": {
+      const opts = {
+        reply_to_message_id: msg.message_id,
+        reply_markup: JSON.stringify({
+          inline_keyboard: [coinCallback],
+        }),
+      };
+      const data = await readUserCoin(msg.chat.id);
+      const coinArr = data.coin.split(",");
+      break;
+    }
+    case "📋 공지사항":
+      print("공지사항");
+      break;
+    case "💰 따뜻한 후원": {
+      const userFirstName = msg.chat.first_name;
+      const userLastName = msg.chat.last_name;
+      const userFullName =
+        userLastName === undefined
+          ? userFirstName
+          : userLastName + " " + userFirstName;
+      const donationMessage = `${userFullName}님 후원해 주시려는 마음 감사합니다. 넉넉치 못한 환경에서 봇을 제작하게 되어 서비스가 안정적이지 못한 것이 사실입니다. 소중한 후원은 서버유지비용에 보태어 더 안정적인 서비스를 제공하도록 노력하겠습니다. 아래 몇가지 코인으로 후원이 가능합니다. 감사합니다. 🧑🏻`;
+      const opts = {
+        reply_to_message_id: msg.message_id,
+        reply_markup: JSON.stringify({
+          inline_keyboard: [
+            [
+              {
+                text: "스텔라루멘으로 후원",
+                callback_data: "donation_xlm",
+              },
+            ],
+            [
+              {
+                text: "리플로 후원",
+                callback_data: "donation_xrp",
+              },
+            ],
+            [
+              {
+                text: "이오스로 후원",
+                callback_data: "donation_eos",
+              },
+            ],
+          ],
+        }),
+      };
+      bot.sendMessage(msg.chat.id, donationMessage, opts);
+      break;
+    }
+    default:
+      break;
+  }
+});
+
+// 인라인 키보드 콜백처리
+bot.on("callback_query", async (msg) => {
   const callbackData = msg.data;
   switch (callbackData) {
     case "click1":
@@ -191,6 +281,38 @@ bot.on("callback_query", (msg) => {
     case "click2":
       print("click2");
       break;
+    case "userChooseCoin": {
+      break;
+    }
+    case "donation_xlm": {
+      const message = `스텔라루멘 후원 주소는\n${process.env.DONATION_XLM_ADDRESS}\n
+        메모는 ${process.env.DONATION_XLM_MEMO} 입니다. 감사합니다. `;
+      bot.answerCallbackQuery(msg.id, message);
+      break;
+    }
+    case "donation_xrp": {
+      const message = `리플 후원 주소는\n${process.env.DONATION_XRP_ADDRESS}\n
+        태그는 ${process.env.DONATION_XRP_TAG} 입니다. 감사합니다. `;
+      bot.answerCallbackQuery(msg.id, message);
+      break;
+    }
+    case "donation_eos": {
+      const message = `이오스 후원 주소는\n${process.env.DONATION_EOS_ADDRESS}\n
+        메모는 ${process.env.DONATION_EOS_MEMO} 입니다. 감사합니다. `;
+      bot.answerCallbackQuery(msg.id, message);
+      break;
+    }
+    default: {
+      // 현재가 조회는 콤마 뒤에 마켓이름 딸려옴
+      if (callbackData.includes("getTicker")) {
+        const coinSymbol = callbackData.split(",")[1];
+        const chatid = callbackData.split(",")[2];
+        const tickerData = await getTicker(coinSymbol);
+        const tickerMessage = `${tickerData[0].market} 현재가격 : ${tickerData[0].trade_price} 원입니다.\n`;
+        bot.sendMessage(chatid, tickerMessage);
+      }
+      break;
+    }
   }
   const opts = {
     reply_to_message_id: msg.message_id,
@@ -359,18 +481,3 @@ export const sendChart = async (signalData) => {
       break;
   }
 };
-
-// // 모든 메세지를 받아서 DB에 업데이트
-// bot.on("message", function (msg) {
-//   const lastDateOfCommand = new Date(msg.date * 1000);
-//   const userName = msg.chat.username || "no username provided";
-//   const chatId = msg.chat.id;
-//   const userFirstName = msg.chat.first_name;
-//   const userLastName = msg.chat.last_name;
-//   const userFullname =
-//     userLastName === undefined
-//       ? userFirstName
-//       : userLastName + " " + userFirstName;
-//   const messageId = msg.message_id;
-//   const messageText = msg.text || "no text";
-// });
