@@ -107,8 +107,6 @@ export const startAlarm = () => {
   }, 7000);
 };
 
-startAlarm();
-
 // 매 x분 마다 실행되는 공통루틴
 const executeRoutineByTimeframe = async (timeframe, rows) => {
   print(`매 ${timeframe}분 실행`);
@@ -208,7 +206,7 @@ const runTA = (coin_symbol, data, ta_symbol) => {
       // data = [{trade_price: 얼마얼마}] 이런 식
       for (let i = 0, datalen = data.length; i < datalen; i++) {
         arrdata.push(data[i]["trade_price"]);
-        xdata.push(data[i]["candle_date_time_kst"]);
+        xdata.push(data[i]["candle_date_time_kst"].slice(11, 16));
       }
       // print("arrdata.length = ", arrdata.length);
       const macdInput = {

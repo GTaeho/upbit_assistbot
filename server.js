@@ -26,11 +26,12 @@ import { sample_chart, renderChart } from "./renderchart.js";
 import TelegramBot from "node-telegram-bot-api";
 import { print } from "./misc/print.js";
 import { fetchAllMarket, getTicker } from "./upbit.js";
+import { startAlarm } from "./alarm.js";
 
 // .env 사용하기
 dotenv.config();
 // 텔레그램 토큰
-const token = process.env.GOLDENGATE_BOT_TOKEN;
+const token = process.env.TELEGRAM_BOT_TOKEN;
 // 텔레그램 봇 인스턴스
 const bot = new TelegramBot(token, { polling: true });
 // 최대 사용자 인원
@@ -40,6 +41,9 @@ const max_user_quota = 4;
 bot.getMe().then((info) => {
   print(`${info.first_name} is ready, the botname is @${info.username}`);
 });
+
+// 봇 체크 완료되면 지표알람 무한루틴 바로 시작
+startAlarm();
 
 // /start 입력 받을 때
 bot.onText(/\/start/, async (msg) => {
@@ -204,7 +208,7 @@ bot.on("message", async (msg) => {
         const coinSymbol = coinArr[key];
         coinCallback.push({
           text: coinSymbol,
-          callback_data: `getTicker,${coinSymbol},${msg.chat.id}`,
+          callback_data: `getTicker,${coinSymbol}`,
         });
       }
       const opts = {
@@ -217,19 +221,20 @@ bot.on("message", async (msg) => {
       break;
     }
     case "➕ 코인선택": {
-      const opts = {
-        reply_to_message_id: msg.message_id,
-        reply_markup: JSON.stringify({
-          inline_keyboard: [coinCallback],
-        }),
-      };
-      const data = await readUserCoin(msg.chat.id);
-      const coinArr = data.coin.split(",");
-      break;
+    //   const opts = {
+    //     reply_to_message_id: msg.message_id,
+    //     reply_markup: JSON.stringify({
+    //       inline_keyboard: [coinCallback],
+    //     }),
+    //   };
+    //   const data = await readUserCoin(msg.chat.id);
+    //   const coinArr = data.coin.split(",");
+    //   break;
+    // }
+    // case "📋 공지사항":
+    //   print("공지사항");
+    //   break;
     }
-    case "📋 공지사항":
-      print("공지사항");
-      break;
     case "💰 따뜻한 후원": {
       const userFirstName = msg.chat.first_name;
       const userLastName = msg.chat.last_name;
@@ -272,64 +277,106 @@ bot.on("message", async (msg) => {
 });
 
 // 인라인 키보드 콜백처리
-bot.on("callback_query", async (msg) => {
-  const callbackData = msg.data;
+bot.on("callback_query", async (query) => {
+  const callbackData = query.data;
+  const chatid = query.message.chat.id;
+  const messageid = query.message.message_id;
   switch (callbackData) {
-    case "click1":
-      print("click1");
-      break;
-    case "click2":
-      print("click2");
-      break;
     case "userChooseCoin": {
       break;
     }
     case "donation_xlm": {
-      const message = `스텔라루멘 후원 주소는\n${process.env.DONATION_XLM_ADDRESS}\n
-        메모는 ${process.env.DONATION_XLM_MEMO} 입니다. 감사합니다. `;
-      bot.answerCallbackQuery(msg.id, message);
+      const message = `스텔라루멘 후원 주소는\n${process.env.DONATION_XLM_ADDRESS}\n\n메모는\n${process.env.DONATION_XLM_MEMO}\n입니다. 감사합니다. `;
+      await updateDonateMessage(query, message);
       break;
     }
     case "donation_xrp": {
-      const message = `리플 후원 주소는\n${process.env.DONATION_XRP_ADDRESS}\n
-        태그는 ${process.env.DONATION_XRP_TAG} 입니다. 감사합니다. `;
-      bot.answerCallbackQuery(msg.id, message);
+      const message = `리플 후원 주소는\n${process.env.DONATION_XRP_ADDRESS}\n\n태그는\n${process.env.DONATION_XRP_TAG}\n입니다. 감사합니다. `;
+      await updateDonateMessage(query, message);
       break;
     }
     case "donation_eos": {
-      const message = `이오스 후원 주소는\n${process.env.DONATION_EOS_ADDRESS}\n
-        메모는 ${process.env.DONATION_EOS_MEMO} 입니다. 감사합니다. `;
-      bot.answerCallbackQuery(msg.id, message);
+      const message = `이오스 후원 주소는\n${process.env.DONATION_EOS_ADDRESS}\n\n메모는\n${process.env.DONATION_EOS_MEMO}\n입니다. 감사합니다. `;
+      await updateDonateMessage(query, message);
       break;
     }
     default: {
       // 현재가 조회는 콤마 뒤에 마켓이름 딸려옴
       if (callbackData.includes("getTicker")) {
         const coinSymbol = callbackData.split(",")[1];
-        const chatid = callbackData.split(",")[2];
         const tickerData = await getTicker(coinSymbol);
         const tickerMessage = `${tickerData[0].market} 현재가격 : ${tickerData[0].trade_price} 원입니다.\n`;
-        bot.sendMessage(chatid, tickerMessage);
+        // await bot.sendMessage(chatid, tickerMessage);
+        const keyboard = {
+          inline_keyboard: [
+            [
+              { text: "text 1", callback_data: "1" },
+              { text: "text 2", callback_data: "2" },
+              { text: "text 3", callback_data: "3" },
+            ],
+          ],
+        };
+        const opts = {
+          chat_id: chatid,
+          message_id: messageid,
+          reply_markup: keyboard,
+        };
+        await bot.editMessageText(tickerMessage, opts);
       }
       break;
     }
   }
+  // const opts = {
+  //   reply_to_message_id: query.message_id,
+  //   reply_markup: JSON.stringify({
+  //     inline_keyboard: [
+  //       [
+  //         { text: "Click ME2!", callback_data: "click2" },
+  //         {
+  //           text: "Click ME1!",
+  //           callback_data: "click1",
+  //         },
+  //       ],
+  //     ],
+  //   }),
+  // };
+  // bot.answerCallbackQuery(query.id, "OK, here you go!", opts);
+});
+
+// 후원 공통되는 부분 - 메세지 업데이트하면서 인라인 키보드 유지
+const updateDonateMessage = async (query, messageString) => {
+  const chatid = query.message.chat.id;
+  const messageid = query.message.message_id;
   const opts = {
-    reply_to_message_id: msg.message_id,
+    // 콜백쿼리에서 editMessageText 할때는 chat_id와 message_id가 필수
+    chat_id: chatid,
+    message_id: messageid,
     reply_markup: JSON.stringify({
       inline_keyboard: [
         [
-          { text: "Click ME2!", callback_data: "click2" },
           {
-            text: "Click ME1!",
-            callback_data: "click1",
+            text: "스텔라루멘으로 후원",
+            callback_data: "donation_xlm",
+          },
+        ],
+        [
+          {
+            text: "리플로 후원",
+            callback_data: "donation_xrp",
+          },
+        ],
+        [
+          {
+            text: "이오스로 후원",
+            callback_data: "donation_eos",
           },
         ],
       ],
     }),
   };
-  bot.answerCallbackQuery(msg.id, "OK, here you go!", opts);
-});
+  await bot.editMessageText(messageString, opts);
+  await bot.answerCallbackQuery(query.id, { text: "감사합니다" });
+};
 
 // 사용자에게 차트 보내기
 // const signalData = {
@@ -358,12 +405,12 @@ export const sendChart = async (signalData) => {
           labels: signalData.labels,
           datasets: [
             {
-              label: "MACD Line",
+              label: "MACD 선",
               data: macdArray,
               borderColor: "rgb(68, 166, 245)",
             },
             {
-              label: "SIGNAL Line",
+              label: "SIGNAL 선",
               data: macdSignalArray,
               borderColor: "rgb(255, 124, 26)",
             },
@@ -374,7 +421,7 @@ export const sendChart = async (signalData) => {
             title: {
               color: "black",
               display: true,
-              text: `${signalData.coin} / ${signalData.timeframe} Minute`,
+              text: `${signalData.coin} / ${signalData.timeframe} 분봉`,
             },
           },
         },
