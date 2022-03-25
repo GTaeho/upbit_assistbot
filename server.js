@@ -30,8 +30,14 @@ import { startAlarm } from "./alarm.js";
 
 // .env 사용하기
 dotenv.config();
-// 텔레그램 토큰
-const token = process.env.TELEGRAM_BOT_TOKEN;
+// 텔레그램 토큰 - 윈도우는 개발용 따로, 리눅스는 배포용 따로
+const os = process.platform;
+let token = undefined;
+if (os == "win32") {
+  token = process.env.GOLDENGATE_BOT_TOKEN;
+} else if (os == "linux") {
+  token = process.env.TELEGRAM_BOT_TOKEN;
+}
 // 텔레그램 봇 인스턴스
 const bot = new TelegramBot(token, { polling: true });
 // 최대 사용자 인원
@@ -221,19 +227,19 @@ bot.on("message", async (msg) => {
       break;
     }
     case "➕ 코인선택": {
-    //   const opts = {
-    //     reply_to_message_id: msg.message_id,
-    //     reply_markup: JSON.stringify({
-    //       inline_keyboard: [coinCallback],
-    //     }),
-    //   };
-    //   const data = await readUserCoin(msg.chat.id);
-    //   const coinArr = data.coin.split(",");
-    //   break;
-    // }
-    // case "📋 공지사항":
-    //   print("공지사항");
-    //   break;
+      //   const opts = {
+      //     reply_to_message_id: msg.message_id,
+      //     reply_markup: JSON.stringify({
+      //       inline_keyboard: [coinCallback],
+      //     }),
+      //   };
+      //   const data = await readUserCoin(msg.chat.id);
+      //   const coinArr = data.coin.split(",");
+      //   break;
+      // }
+      // case "📋 공지사항":
+      //   print("공지사항");
+      //   break;
     }
     case "💰 따뜻한 후원": {
       const userFirstName = msg.chat.first_name;
@@ -423,8 +429,37 @@ export const sendChart = async (signalData) => {
               display: true,
               text: `${signalData.coin} / ${signalData.timeframe} 분봉`,
             },
+            subtitle: {
+              display: true,
+              text: "MACD 상승돌파 신호",
+              color: "green",
+            },
           },
         },
+        plugins: [
+          {
+            id: "signalRedLine",
+            afterDraw: (chart, args, options) => {
+              const {
+                ctx,
+                chartArea: { left, top, right, bottom },
+              } = chart;
+
+              const fixedXPoint = 597;
+
+              // draw line
+              ctx.beginPath();
+              ctx.moveTo(fixedXPoint, bottom);
+              ctx.strokeStyle = "#ff0000";
+              ctx.lineTo(fixedXPoint, top);
+              ctx.stroke();
+
+              // write TODAY
+              ctx.textAlign = "center";
+              ctx.fillText("신호발생", fixedXPoint, top - 12);
+            },
+          },
+        ],
       };
       const Opts = {
         reply_to_message_id: signalData.chatid,
@@ -474,9 +509,37 @@ export const sendChart = async (signalData) => {
               display: true,
               text: `${signalData.coin} / ${signalData.timeframe} Minute`,
             },
+            subtitle: {
+              display: true,
+              text: "MACD 하락돌파 신호",
+              color: "red",
+            },
           },
-          // layout: { padding: { left: 50 } },
         },
+        plugins: [
+          {
+            id: "signalRedLine",
+            afterDraw: (chart, args, options) => {
+              const {
+                ctx,
+                chartArea: { left, top, right, bottom },
+              } = chart;
+
+              const fixedXPoint = 597;
+
+              // draw line
+              ctx.beginPath();
+              ctx.moveTo(fixedXPoint, bottom);
+              ctx.strokeStyle = "#ff0000";
+              ctx.lineTo(fixedXPoint, top);
+              ctx.stroke();
+
+              // write TODAY
+              ctx.textAlign = "center";
+              ctx.fillText("신호발생", fixedXPoint, top - 12);
+            },
+          },
+        ],
       };
 
       const Opts = {

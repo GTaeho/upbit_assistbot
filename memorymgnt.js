@@ -32,12 +32,6 @@ const chartSet960540 = new ChartJSNodeCanvas({
   backgroundColour: "white",
 });
 
-const bigCChartJSNodeCanvas = new ChartJSNodeCanvas({
-  width: 1920,
-  height: 1080,
-  backgroundColour: "white",
-});
-
 // // Expose just the 'render' methods to downstream code
 // // so they don't have to worry about life-cycle management.
 // 정서적으로 눈으로 보기에 줄일 수 있는 가장 최소크기

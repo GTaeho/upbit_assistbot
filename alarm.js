@@ -26,9 +26,12 @@ export const startAlarm = () => {
   setInterval(async () => {
     const date = new Date();
     const minute_now = date.getMinutes();
+    // 매 분마다 실행할 때 최소 5초는 지나고 호출해야 이전봉이 종료되고
+    // 현재봉이 시작된 정확한 값을 가져올 수 있다.
+    const second_now = date.getSeconds();
 
-    // 매 분마다 실행
-    if (minute_now !== prev_minute) {
+    // 매 분마다 실행, 매 실행때마다 초단위는 항상 5초 이상은 지나서 실행되도록
+    if (minute_now != prev_minute && second_now >= 5) {
       prev_minute = minute_now;
 
       /**
@@ -104,7 +107,7 @@ export const startAlarm = () => {
         }
       }
     }
-  }, 7000);
+  }, 3000);
 };
 
 // 매 x분 마다 실행되는 공통루틴
