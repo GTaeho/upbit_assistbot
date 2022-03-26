@@ -70,6 +70,17 @@ export const readUserCoin = (chatid) => {
   });
 };
 
+// 사용자가 지정한 코인 저장하기
+export const updateUserDefinedCoin = (chatid, commaSepratedString) => {
+  return new Promise((resolve, reject) => {
+    const query = `UPDATE users SET coin='${commaSepratedString}' WHERE chatid=${chatid}`;
+    userdb.get(query, (err, data) => {
+      if (err) reject(err)
+      resolve(data)
+    })
+  });
+};
+
 //
 export const findLastcmdByChatID = (chatid) => {
   return new Promise((resolve, reject) => {

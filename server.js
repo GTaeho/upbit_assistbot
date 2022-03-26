@@ -48,8 +48,8 @@ bot.getMe().then((info) => {
   print(`${info.first_name} is ready, the botname is @${info.username}`);
 });
 
-// 봇 체크 완료되면 지표알람 무한루틴 바로 시작
-startAlarm();
+// 봇 체크 완료되면 지표알람 무한루틴 바로 시작, 필요시 주석처리
+// startAlarm();
 
 // /start 입력 받을 때
 bot.onText(/\/start/, async (msg) => {
@@ -200,6 +200,7 @@ bot.onText(/\/image/, async (msg) => {
 
 // 키보드 팝업 메뉴 처리
 bot.on("message", async (msg) => {
+  // 현재까지 팝업메뉴판
   // ["📈 현재가조회", "➕ 코인선택"],
   //       ["⚙ 메뉴7번", "❔ 메뉴8번"],
   //       ["📋 공지사항"],
@@ -211,11 +212,23 @@ bot.on("message", async (msg) => {
       const coinArr = data.coin.split(",");
       const coinCallback = [];
       for (let key in coinArr) {
-        const coinSymbol = coinArr[key];
-        coinCallback.push({
-          text: coinSymbol,
-          callback_data: `getTicker,${coinSymbol}`,
-        });
+        if (coinArr[key] != "") {
+          const coinSymbol = coinArr[key];
+          coinCallback.push({
+            text: coinSymbol,
+            callback_data: `getTicker,${coinSymbol}`,
+          });
+        } else if (coinArr[key] == "" && key == 1) {
+          coinCallback.push({
+            text: "비어있음",
+            callback_data: `getTicker,emptySlot2`,
+          });
+        } else if (coinArr[key] == "" && key == 2) {
+          coinCallback.push({
+            text: "비어있음",
+            callback_data: `getTicker,emptySlot3`,
+          });
+        }
       }
       const opts = {
         reply_to_message_id: msg.message_id,
@@ -227,19 +240,31 @@ bot.on("message", async (msg) => {
       break;
     }
     case "➕ 코인선택": {
-      //   const opts = {
-      //     reply_to_message_id: msg.message_id,
-      //     reply_markup: JSON.stringify({
-      //       inline_keyboard: [coinCallback],
-      //     }),
-      //   };
-      //   const data = await readUserCoin(msg.chat.id);
-      //   const coinArr = data.coin.split(",");
-      //   break;
-      // }
-      // case "📋 공지사항":
-      //   print("공지사항");
-      //   break;
+      const data = await readUserCoin(msg.chat.id);
+      const coinArr = data.coin.split(",");
+      const coinCallback = [];
+
+      for (let i = 0; i < 3; i++) {
+        if (coinArr[i] != "") {
+          coinCallback.push({
+            text: coinArr[i],
+            callback_data: `editCoin,slot${i}`,
+          });
+        } else if (coinArr[i] == "") {
+          coinCallback.push({
+            text: "비어있음",
+            callback_data: `editCoin,slot${i}`,
+          });
+        }
+      }
+      const opts = {
+        reply_to_message_id: msg.message_id,
+        reply_markup: JSON.stringify({
+          inline_keyboard: [coinCallback],
+        }),
+      };
+      bot.sendMessage(msg.chat.id, "3개 코인까지 선택가능합니다.", opts);
+      break;
     }
     case "💰 따뜻한 후원": {
       const userFirstName = msg.chat.first_name;
@@ -309,44 +334,59 @@ bot.on("callback_query", async (query) => {
     default: {
       // 현재가 조회는 콤마 뒤에 마켓이름 딸려옴
       if (callbackData.includes("getTicker")) {
+        // getTicker,KRW-BTC 이런방식 splite[1]은 KRW-BTC를 가져옴
         const coinSymbol = callbackData.split(",")[1];
-        const tickerData = await getTicker(coinSymbol);
-        const tickerMessage = `${tickerData[0].market} 현재가격 : ${tickerData[0].trade_price} 원입니다.\n`;
-        // await bot.sendMessage(chatid, tickerMessage);
-        const keyboard = {
-          inline_keyboard: [
-            [
-              { text: "text 1", callback_data: "1" },
-              { text: "text 2", callback_data: "2" },
-              { text: "text 3", callback_data: "3" },
-            ],
-          ],
-        };
+        let tickerMessage = "";
+        if (coinSymbol.includes("KRW")) {
+          const tickerData = await getTicker(coinSymbol);
+          tickerMessage = `${tickerData[0].market} 현재가격 : ${tickerData[0].trade_price} 원입니다.\n`;
+          // await bot.sendMessage(chatid, tickerMessage);
+        } else if (coinSymbol == "emptySlot2") {
+          tickerMessage =
+            "2번 빈칸을 선택하셨어요. /start 에서 코인을 선택해주세요.";
+        } else if (coinSymbol == "emptySlot3") {
+          tickerMessage =
+            "3번 빈칸을 선택하셨어요. /start 에서 코인을 선택해주세요.";
+        }
+
+        const data = await readUserCoin(chatid);
+        const coinArr = data.coin.split(",");
+        let coinCallback = [];
+        for (let key in coinArr) {
+          if (coinArr[key].includes("KRW")) {
+            const coinSymbol = coinArr[key];
+            coinCallback.push({
+              text: coinSymbol,
+              callback_data: `getTicker,${coinSymbol}`,
+            });
+          } else if (coinArr[key] == "" && key == 1) {
+            coinCallback.push({
+              text: "비어있음",
+              callback_data: `getTicker,emptySlot2`,
+            });
+          } else if (coinArr[key] == "" && key == 2) {
+            coinCallback.push({
+              text: "비어있음",
+              callback_data: `getTicker,emptySlot3`,
+            });
+          }
+        }
         const opts = {
           chat_id: chatid,
           message_id: messageid,
-          reply_markup: keyboard,
+          reply_markup: JSON.stringify({
+            inline_keyboard: [coinCallback],
+          }),
         };
         await bot.editMessageText(tickerMessage, opts);
+      } else if (callbackData.includes("editCoin")) {
+        const slotNumber = callbackData.split(",")[1];
+        const selctCoinMessage = "코인이름을 입력하세요. ";
+        await bot.sendMessage(selctCoinMessage, opts);
       }
       break;
     }
   }
-  // const opts = {
-  //   reply_to_message_id: query.message_id,
-  //   reply_markup: JSON.stringify({
-  //     inline_keyboard: [
-  //       [
-  //         { text: "Click ME2!", callback_data: "click2" },
-  //         {
-  //           text: "Click ME1!",
-  //           callback_data: "click1",
-  //         },
-  //       ],
-  //     ],
-  //   }),
-  // };
-  // bot.answerCallbackQuery(query.id, "OK, here you go!", opts);
 });
 
 // 후원 공통되는 부분 - 메세지 업데이트하면서 인라인 키보드 유지
@@ -474,7 +514,6 @@ export const sendChart = async (signalData) => {
       await bot.sendPhoto(signalData.chatid, buffer, {}, Opts);
       break;
     }
-
     case "macdcu": {
       // print(signalData.data.length);
       let macdArray = [];

@@ -121,81 +121,93 @@ const executeRoutineByTimeframe = async (timeframe, rows) => {
     // rows 에서 필요한 정보 추출
     const username = rows[i]["username"];
     const chatid = rows[i]["chatid"];
-    const coin = rows[i]["coin"];
+    const coins = rows[i]["coin"].split(",");
     const ta = rows[i]["ta"];
 
-    // coin 테이블이 있는지 확인
-    const isTableExists = await checkTableExists(coin, timeframe);
-    print(
-      `${username} : ${coin} -> isTableExists : ` +
-        isTableExists +
-        ", ta : " +
-        ta
-    );
-
-    // 있으면 db 에서 데이터 읽어와서 TA
-    if (isTableExists) {
-      const rows = await readExistingCoinData(coin, timeframe);
-      // print(rows);
-      const taResult = runTA(coin, rows, ta);
-      // TA 결과는 깔끔하게 {"coin":"KRW-BTC","signal":"NO_SIGNAL","signalType":"macdco"} 이런식
-      print(
-        `TA 결과 : coin: ${taResult.coin}, signal: ${taResult.signal}, signalType: ${taResult.signalType}`
-      );
-      if (taResult.signal == "SIGNAL") {
-        const signalData = {
-          coin: coin,
-          chatid: chatid,
-          timeframe: timeframe,
-          taSymbol: taResult.signalType,
-          labels: taResult.xdata,
-          data: taResult.data,
-        };
-        await sendChart(signalData);
-      }
-
-      // 없으면 테이블만들고, 업비트에서 데이터 받아오고 테이블에 자료 넣기
-    } else if (!isTableExists) {
-      print("테이블을 찾지 못함, 새로만들어서 데이터 넣기");
-      coinTablePlaceholder.push(coin);
-      await createCoinMarketTable(coin, timeframe);
-      const coindata = await fetchRawUpbitCoinData(coin, timeframe);
-      const insertResult = await insertCoinData(coin, coindata, timeframe);
-      // 자료입력 다 했으면 기술분석 시작
-      if (insertResult == "ok") {
-        const rows = await readExistingCoinData(coin, timeframe);
-        const taResult = runTA(coin, rows, ta);
-        // TA 결과는 깔끔하게 {"coin":"KRW-BTC","signal":"NO_SIGNAL","signalType":"macdco"} 이런식
-        const taResultCoin = taResult.coin;
-        const taResultSignal = taResult.signal;
-        const taResultSignalType = taResult.signalType;
+    // 한 사람당 코인은 3개까지 들어오니까 3번까지 돌림
+    for (let j = 0, coinslen = coins.length; j < coinslen; j++) {
+      const coin = coins[j];
+      // 사용자가 지정하지 않으면 비어있는 코인은 "" 스트링으로 들어옴 -> 건너뛰기
+      if (coin != "") {
+        // coin 테이블이 있는지 확인
+        const isTableExists = await checkTableExists(coin, timeframe);
         print(
-          `TA 결과 : coin: ${taResultCoin}, signal: ${taResultSignal}, signalType: ${taResultSignalType}`
+          `${username} : ${coin} -> isTableExists : ` +
+            isTableExists +
+            ", ta : " +
+            ta
         );
-        if (taResult.signal == "SIGNAL") {
-          const signalData = {
-            coin: coin,
-            chatid: chatid,
-            timeframe: timeframe,
-            taSymbol: taResult.signalType,
-            labels: taResult.xdata,
-            data: taResult.data,
-          };
-          await sendChart(signalData);
+
+        // 있으면 db 에서 데이터 읽어와서 TA
+        if (isTableExists) {
+          const rows = await readExistingCoinData(coin, timeframe);
+          // print(rows);
+          const taResult = runTA(coin, rows, ta);
+          // TA 결과는 깔끔하게 {"coin":"KRW-BTC","signal":"NO_SIGNAL","signalType":"macdco"} 이런식
+          print(
+            `TA 결과 : coin: ${taResult.coin}, signal: ${taResult.signal}, signalType: ${taResult.signalType}`
+          );
+          if (taResult.signal == "SIGNAL") {
+            const signalData = {
+              coin: coin,
+              chatid: chatid,
+              timeframe: timeframe,
+              taSymbol: taResult.signalType,
+              labels: taResult.xdata,
+              data: taResult.data,
+            };
+            await sendChart(signalData);
+          }
+
+          // 없으면 테이블만들고, 업비트에서 데이터 받아오고 테이블에 자료 넣기
+        } else if (!isTableExists) {
+          print("테이블을 찾지 못함, 새로만들어서 데이터 넣기");
+          coinTablePlaceholder.push(coin);
+          await createCoinMarketTable(coin, timeframe);
+          const coindata = await fetchRawUpbitCoinData(coin, timeframe);
+          const insertResult = await insertCoinData(coin, coindata, timeframe);
+          // 자료입력 다 했으면 기술분석 시작
+          if (insertResult == "ok") {
+            const rows = await readExistingCoinData(coin, timeframe);
+            const taResult = runTA(coin, rows, ta);
+            // TA 결과는 깔끔하게 {"coin":"KRW-BTC","signal":"NO_SIGNAL","signalType":"macdco"} 이런식
+            const taResultCoin = taResult.coin;
+            const taResultSignal = taResult.signal;
+            const taResultSignalType = taResult.signalType;
+            print(
+              `TA 결과 : coin: ${taResultCoin}, signal: ${taResultSignal}, signalType: ${taResultSignalType}`
+            );
+            if (taResult.signal == "SIGNAL") {
+              const signalData = {
+                coin: coin,
+                chatid: chatid,
+                timeframe: timeframe,
+                taSymbol: taResult.signalType,
+                labels: taResult.xdata,
+                data: taResult.data,
+              };
+              await sendChart(signalData);
+            }
+          }
         }
       }
     }
-  }
-  // 테이블 생성한거 있으면 삭제시간
-  if (coinTablePlaceholder.length != 0) {
-    print("테이블 삭제 시작");
-    const dropResult = await dropTableIfExists(coinTablePlaceholder, timeframe);
-    if (dropResult == "ok") {
-      print("테이블 삭제 완료");
+    // 테이블 생성한거 있으면 삭제시간
+    if (coinTablePlaceholder.length != 0) {
+      print("테이블 삭제 시작");
+      const dropResult = await dropTableIfExists(
+        coinTablePlaceholder,
+        timeframe
+      );
+      if (dropResult == "ok") {
+        print("테이블 삭제 완료");
+        print(
+          "----------------------------------------------------------------"
+        );
+      }
+    } else {
       print("----------------------------------------------------------------");
     }
-  } else {
-    print("----------------------------------------------------------------");
   }
 };
 
