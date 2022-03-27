@@ -42,6 +42,10 @@ if (os == "win32") {
 const bot = new TelegramBot(token, { polling: true });
 // 최대 사용자 인원
 const max_user_quota = 4;
+// 사용자 연속입력 제한에 대한 데이터 어레이
+let userCmdQuotaArray = [];
+// 사용자 연속입력 차단 해제 시간
+const quotaInterval = 7;
 
 // 봇체크
 bot.getMe().then((info) => {
@@ -200,6 +204,15 @@ bot.onText(/\/image/, async (msg) => {
 
 // 키보드 팝업 메뉴 처리
 bot.on("message", async (msg) => {
+  // 모든 사용자의 메세지는 서버 안정을 위해서 정해진 시간이 지나야 다음 명령을 넣을 수 있게 한다
+  const result = manageUserCmdQuota(msg);
+  console.log(result);
+  if (result == "notAllowedYet") {
+    const notYetMessage = "요청이 너무 많습니다. 잠시 후 다시 시도하세요.";
+    await bot.sendMessage(msg.chat.id, notYetMessage);
+    return false;
+  }
+
   // 현재까지 팝업메뉴판
   // ["📈 현재가조회", "➕ 코인선택"],
   //       ["⚙ 메뉴7번", "❔ 메뉴8번"],
@@ -382,7 +395,7 @@ bot.on("callback_query", async (query) => {
       } else if (callbackData.includes("editCoin")) {
         const slotNumber = callbackData.split(",")[1];
         const selctCoinMessage = "코인이름을 입력하세요. ";
-        await bot.sendMessage(selctCoinMessage, opts);
+        await bot.sendMessage(selctCoinMessage);
       }
       break;
     }
@@ -630,3 +643,48 @@ export const sendChart = async (signalData) => {
       break;
   }
 };
+
+// bot.on("message" ...) 에서 입력되는 모든 메세지를 읽어서
+// 정해진 시간 이후 다른 명령어를 받을 수 있도록 세팅
+const manageUserCmdQuota = (msg) => {
+  const chatid = msg.chat.id;
+  const quotaLen = userCmdQuotaArray.length;
+  let result = "";
+  if (quotaLen != 0) {
+    for (let i = 0; i < quotaLen; i++) {
+      // quotaInterval초 이상이면 찾아질 일이 없는데 chatid로 찾아진다면 아직 새로운 명령어를 받으면 안된다.
+      if (userCmdQuotaArray[i].chatid == chatid) {
+        result = "notAllowedYet";
+      }
+      // for loop가 확실하게 마지막에 실행되도록
+      if (i == quotaLen - 1) {
+        return result;
+      }
+    }
+  } else if (quotaLen == 0) {
+    // chatid 등록된거 없으면 새로 등록해서 quotaInterval초간 메세지 금지
+    const chatidAndDate = {
+      chatid: chatid,
+      date: new Date().getTime(),
+    };
+    userCmdQuotaArray.push(chatidAndDate);
+    // 결과는 ok
+    return "ok";
+  }
+};
+
+// quotaInterval초마다 실행 - 사용자가 정해진 시간 안에는 명령어 받지 못하도록
+setInterval(() => {
+  const usercmdlen = userCmdQuotaArray.length;
+  const timeMillNow = new Date().getTime();
+  if (usercmdlen != 0) {
+    for (let i = 0; i < usercmdlen; i++) {
+      // quotaInterval초 이상이 되면 그 항목은 지우는 것
+      if (timeMillNow > userCmdQuotaArray[i].date + 10000) {
+        console.log(JSON.stringify(userCmdQuotaArray[i]) + " : 삭제 완료");
+        // array 는 지울때 splice를 통해서 지운다.
+        userCmdQuotaArray.splice(i, 1);
+      }
+    }
+  }
+}, quotaInterval * 1000);
