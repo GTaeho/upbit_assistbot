@@ -205,12 +205,15 @@ bot.onText(/\/image/, async (msg) => {
 // 키보드 팝업 메뉴 처리
 bot.on("message", async (msg) => {
   // 모든 사용자의 메세지는 서버 안정을 위해서 정해진 시간이 지나야 다음 명령을 넣을 수 있게 한다
-  const result = manageUserCmdQuota(msg);
-  console.log(result);
-  if (result == "notAllowedYet") {
-    const notYetMessage = "요청이 너무 많습니다. 잠시 후 다시 시도하세요.";
-    await bot.sendMessage(msg.chat.id, notYetMessage);
-    return false;
+  // '/' 슬래시가 들어간 커맨드는 제외
+  if (!msg.text.includes("/")) {
+    const result = manageUserCmdQuota(msg);
+    console.log(result);
+    if (result == "notAllowedYet") {
+      const notYetMessage = "요청이 너무 많습니다. 잠시 후 다시 시도하세요.";
+      await bot.sendMessage(msg.chat.id, notYetMessage);
+      return false;
+    }
   }
 
   // 현재까지 팝업메뉴판
@@ -393,9 +396,19 @@ bot.on("callback_query", async (query) => {
         };
         await bot.editMessageText(tickerMessage, opts);
       } else if (callbackData.includes("editCoin")) {
-        const slotNumber = callbackData.split(",")[1];
-        const selctCoinMessage = "코인이름을 입력하세요. ";
-        await bot.sendMessage(selctCoinMessage);
+        // const slotNumber = callbackData.split(",")[1];
+        // 코인이름을 plain text로 입력받는 예제는 https://stackoverflow.com/a/70542558 를 참고하였다.
+        const selectCoinMessage = "코인이름을 입력하세요. 예) 비트코인";
+        const namePrompt = await bot.sendMessage(chatid, selectCoinMessage, {
+          reply_markup: {
+            force_reply: true,
+          },
+        });
+        bot.onReplyToMessage(chatid, namePrompt.message_id, async (namemsg) => {
+          const name = namemsg.text;
+          console.log(`name : ${name}`);
+          await bot.sendMessage(chatid, `${name}`);
+        });
       }
       break;
     }
