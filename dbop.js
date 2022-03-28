@@ -13,6 +13,7 @@ import { print } from "./misc/print.js";
 
 // db 생성 - 신기하다. 여기서만 생성하면 db.xxx 이름으로 시작되는 모든 작업이 사용가능
 const userdb = new sqlite3.Database("./db/users.db");
+const marketdb = new sqlite3.Database("./db/market.db");
 const coindb1min = new sqlite3.Database("./db/coin1min.db");
 const coindb3min = new sqlite3.Database("./db/coin3min.db");
 const coindb5min = new sqlite3.Database("./db/coin5min.db");
@@ -75,9 +76,9 @@ export const updateUserDefinedCoin = (chatid, commaSepratedString) => {
   return new Promise((resolve, reject) => {
     const query = `UPDATE users SET coin='${commaSepratedString}' WHERE chatid=${chatid}`;
     userdb.get(query, (err, data) => {
-      if (err) reject(err)
-      resolve(data)
-    })
+      if (err) reject(err);
+      resolve(data);
+    });
   });
 };
 
@@ -156,6 +157,17 @@ export const readLastCmd = (username) => {
 
 //   })
 // }
+
+// market.db 에서 market, kname 컬럼 모두 읽어오기
+export const readKRWMarketSymbol = () => {
+  return new Promise((resolve, reject) => {
+    const query = "SELECT * FROM market";
+    marketdb.all(query, [], (err, rows) => {
+      if (err) reject(err);
+      resolve(rows);
+    });
+  });
+};
 
 // 업비트에서 받아오는 자료구조로 테이블 만들기
 export const createCoinMarketTable = (market, timeframe) => {
